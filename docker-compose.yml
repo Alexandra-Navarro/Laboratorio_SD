@@ -106,6 +106,25 @@ services:
     networks:
       - monitoring-network
 
+  fog-node:
+    build:
+      context: ./fog-node
+      dockerfile: Dockerfile
+    environment:
+      - DB_HOST=${POSTGRES_HOST:-postgres}
+      - DB_USER=${POSTGRES_USER:-postgres}
+      - DB_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - DB_NAME=${POSTGRES_DB:-MonitoreoDB}
+      - MQTT_BROKER=tcp://mqtt-broker:1883
+      - MQTT_PORT=1883
+      - MQTT_USER=${MQTT_USER:-monitoring}
+      - MQTT_PASSWORD=${MQTT_PASSWORD:-monitoring123}
+    depends_on:
+      - mqtt-broker
+      - postgres
+    networks:
+      - monitoring-network
+
 networks:
   monitoring-network:
     driver: bridge

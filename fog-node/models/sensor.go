@@ -6,11 +6,11 @@ import "time"
 type SensorData struct {
 	SensorID    string    `json:"sensor_id"`
 	Timestamp   time.Time `json:"timestamp"`
-	Temperature float32   `json:"temperature"`
-	Humidity    float32   `json:"humidity"`
+	Temperature float32   `json:"temperatura"`
+	Humidity    float32   `json:"humedad"`
 	CO2         float32   `json:"co2"`
-	Noise       float32   `json:"noise"`
-	Light       float32   `json:"light"`
+	Noise       float32   `json:"ruido"`
+	Light       float32   `json:"luz"`
 }
 
 // Medicion representa una medición almacenada en la base de datos

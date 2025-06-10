@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
@@ -77,12 +78,20 @@ func initMQTT(cfg *config.Config, sensorService *services.SensorService) {
 			return
 		}
 
-		// Obtener el ID de la sala del tópico MQTT
+		// Extraer nombre de sala del tópico MQTT
 		topic := msg.Topic()
+		parts := strings.Split(topic, "/")
+		if len(parts) != 3 {
+			log.Printf("Formato de tópico inesperado: %s", topic)
+			return
+		}
+		nombreSala := parts[1]
+
+		// Buscar el ID numérico de la sala en la base de datos
 		var salaID int
-		_, err = fmt.Sscanf(topic, "aula/%d/datos", &salaID)
+		err = db.QueryRow("SELECT id FROM sala WHERE nombre = $1", nombreSala).Scan(&salaID)
 		if err != nil {
-			log.Printf("Error al extraer ID de sala del tópico: %v", err)
+			log.Printf("No se encontró la sala '%s' en la base de datos: %v", nombreSala, err)
 			return
 		}
 
@@ -93,7 +102,7 @@ func initMQTT(cfg *config.Config, sensorService *services.SensorService) {
 			return
 		}
 
-		log.Printf("Datos recibidos y almacenados para la sala %d", salaID)
+		log.Printf("Datos recibidos y almacenados para la sala %d (%s)", salaID, nombreSala)
 	})
 
 	client := mqtt.NewClient(opts)
