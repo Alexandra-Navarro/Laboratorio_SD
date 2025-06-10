@@ -1,0 +1,58 @@
+# Archivos de entorno y configuración local
+.env
+*.env
+config.local.js
+config.local.json
+
+# Dependencias y módulos
+node_modules/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Archivos de construcción y compilación
+dist/
+build/
+*.o
+*.hex
+*.bin
+*.elf
+
+# Archivos de IDE y editores
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Archivos de logs
+*.log
+logs/
+
+# Archivos de base de datos
+*.db
+*.sqlite
+*.sqlite3
+
+# Archivos temporales
+tmp/
+temp/
+.DS_Store
+Thumbs.db
+
+# Archivos de Docker
+.docker/
+docker-compose.override.yml
+
+# Archivos de certificados y claves
+*.pem
+*.key
+*.crt
+*.cer
+
+# Archivos específicos de ESP32
+sdkconfig
+sdkconfig.old
+build/ 

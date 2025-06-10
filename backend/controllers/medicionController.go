@@ -1,158 +1,101 @@
 package controllers
 
 import (
-	"database/sql"
-	"encoding/json"
 	"net/http"
 	"strconv"
 
 	"github.com/Alexandra-Navarro/Laboratorio_SD/backend/models"
-
-	"github.com/gorilla/mux"
+	"github.com/Alexandra-Navarro/Laboratorio_SD/backend/services"
+	"github.com/gin-gonic/gin"
 )
 
 type MedicionController struct {
-	DB *sql.DB
+	MedicionService *services.MedicionService
 }
 
-func NewMedicionController(db *sql.DB) *MedicionController {
-	return &MedicionController{DB: db}
+func NewMedicionController(service *services.MedicionService) *MedicionController {
+	return &MedicionController{MedicionService: service}
 }
 
-func (c *MedicionController) Create(w http.ResponseWriter, r *http.Request) {
+func (mc *MedicionController) Create(c *gin.Context) {
 	var medicion models.Medicion
-	if err := json.NewDecoder(r.Body).Decode(&medicion); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	if err := c.ShouldBindJSON(&medicion); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	query := `INSERT INTO medicion (fecha, valor, sensor_id) 
-			  VALUES ($1, $2, $3) RETURNING id`
-	err := c.DB.QueryRow(query, medicion.Fecha, medicion.Valor,
-		medicion.SensorID).Scan(&medicion.ID)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	if err := mc.MedicionService.CreateMedicion(&medicion); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(medicion)
+	c.JSON(http.StatusCreated, medicion)
 }
 
-func (c *MedicionController) GetByID(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id, err := strconv.Atoi(vars["id"])
+func (mc *MedicionController) GetByID(c *gin.Context) {
+	id := c.Param("id")
+	idUint, err := strconv.ParseUint(id, 10, 64)
 	if err != nil {
-		http.Error(w, "ID inválido", http.StatusBadRequest)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID inválido"})
 		return
 	}
 
-	var medicion models.Medicion
-	query := `SELECT id, fecha, valor, sensor_id 
-			  FROM medicion WHERE id = $1`
-	err = c.DB.QueryRow(query, id).Scan(&medicion.ID, &medicion.Fecha,
-		&medicion.Valor, &medicion.SensorID)
+	medicion, err := mc.MedicionService.GetMedicionByID(uint(idUint))
 	if err != nil {
-		if err == sql.ErrNoRows {
-			http.Error(w, "Medición no encontrada", http.StatusNotFound)
-			return
-		}
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		c.JSON(http.StatusNotFound, gin.H{"error": "Medición no encontrada"})
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(medicion)
+	c.JSON(http.StatusOK, medicion)
 }
 
-func (c *MedicionController) GetAll(w http.ResponseWriter, r *http.Request) {
-	rows, err := c.DB.Query("SELECT id, fecha, valor, sensor_id FROM medicion")
+func (mc *MedicionController) GetAll(c *gin.Context) {
+	mediciones, err := mc.MedicionService.GetAllMediciones()
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	defer rows.Close()
 
-	var mediciones []models.Medicion
-	for rows.Next() {
-		var medicion models.Medicion
-		if err := rows.Scan(&medicion.ID, &medicion.Fecha,
-			&medicion.Valor, &medicion.SensorID); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		mediciones = append(mediciones, medicion)
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(mediciones)
+	c.JSON(http.StatusOK, mediciones)
 }
 
-func (c *MedicionController) Update(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id, err := strconv.Atoi(vars["id"])
+func (mc *MedicionController) Update(c *gin.Context) {
+	id := c.Param("id")
+	idUint, err := strconv.ParseUint(id, 10, 64)
 	if err != nil {
-		http.Error(w, "ID inválido", http.StatusBadRequest)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID inválido"})
 		return
 	}
 
 	var medicion models.Medicion
-	if err := json.NewDecoder(r.Body).Decode(&medicion); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	if err := c.ShouldBindJSON(&medicion); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	query := `UPDATE medicion 
-			  SET fecha = $1, valor = $2, sensor_id = $3 
-			  WHERE id = $4`
-	result, err := c.DB.Exec(query, medicion.Fecha, medicion.Valor,
-		medicion.SensorID, id)
+	updatedMedicion, err := mc.MedicionService.UpdateMedicion(uint(idUint), &medicion)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	medicion = *updatedMedicion
 
-	if rowsAffected == 0 {
-		http.Error(w, "Medición no encontrada", http.StatusNotFound)
-		return
-	}
-
-	medicion.ID = id
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(medicion)
+	c.JSON(http.StatusOK, medicion)
 }
 
-func (c *MedicionController) Delete(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id, err := strconv.Atoi(vars["id"])
+func (mc *MedicionController) Delete(c *gin.Context) {
+	id := c.Param("id")
+	idUint, err := strconv.ParseUint(id, 10, 64)
 	if err != nil {
-		http.Error(w, "ID inválido", http.StatusBadRequest)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID inválido"})
 		return
 	}
 
-	result, err := c.DB.Exec("DELETE FROM medicion WHERE id = $1", id)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	if err := mc.MedicionService.DeleteMedicion(uint(idUint)); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	if rowsAffected == 0 {
-		http.Error(w, "Medición no encontrada", http.StatusNotFound)
-		return
-	}
-
-	w.WriteHeader(http.StatusNoContent)
+	c.JSON(http.StatusNoContent, nil)
 }

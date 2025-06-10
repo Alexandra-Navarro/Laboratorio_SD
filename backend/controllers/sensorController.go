@@ -1,158 +1,99 @@
 package controllers
 
 import (
-	"database/sql"
-	"encoding/json"
 	"net/http"
 	"strconv"
 
 	"github.com/Alexandra-Navarro/Laboratorio_SD/backend/models"
-
-	"github.com/gorilla/mux"
+	"github.com/Alexandra-Navarro/Laboratorio_SD/backend/services"
+	"github.com/gin-gonic/gin"
 )
 
 type SensorController struct {
-	DB *sql.DB
+	SensorService *services.SensorService
 }
 
-func NewSensorController(db *sql.DB) *SensorController {
-	return &SensorController{DB: db}
+func NewSensorController(service *services.SensorService) *SensorController {
+	return &SensorController{SensorService: service}
 }
 
-func (c *SensorController) Create(w http.ResponseWriter, r *http.Request) {
+func (sc *SensorController) Create(c *gin.Context) {
 	var sensor models.Sensor
-	if err := json.NewDecoder(r.Body).Decode(&sensor); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	if err := c.ShouldBindJSON(&sensor); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	query := `INSERT INTO sensor (modelo, estado, fecha_instalacion, sala_id, variable_id) 
-			  VALUES ($1, $2, $3, $4, $5) RETURNING id`
-	err := c.DB.QueryRow(query, sensor.Modelo, sensor.Estado,
-		sensor.FechaInstalacion, sensor.SalaID, sensor.VariableID).Scan(&sensor.ID)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	if err := sc.SensorService.CreateSensor(&sensor); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(sensor)
+	c.JSON(http.StatusCreated, sensor)
 }
 
-func (c *SensorController) GetByID(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id, err := strconv.Atoi(vars["id"])
+func (sc *SensorController) GetByID(c *gin.Context) {
+	id := c.Param("id")
+	idUint, err := strconv.ParseUint(id, 10, 64)
 	if err != nil {
-		http.Error(w, "ID inválido", http.StatusBadRequest)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID inválido"})
 		return
 	}
 
-	var sensor models.Sensor
-	query := `SELECT id, modelo, estado, fecha_instalacion, sala_id, variable_id 
-			  FROM sensor WHERE id = $1`
-	err = c.DB.QueryRow(query, id).Scan(&sensor.ID, &sensor.Modelo, &sensor.Estado,
-		&sensor.FechaInstalacion, &sensor.SalaID, &sensor.VariableID)
+	sensor, err := sc.SensorService.GetSensorByID(uint(idUint))
 	if err != nil {
-		if err == sql.ErrNoRows {
-			http.Error(w, "Sensor no encontrado", http.StatusNotFound)
-			return
-		}
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		c.JSON(http.StatusNotFound, gin.H{"error": "Sensor no encontrado"})
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(sensor)
+	c.JSON(http.StatusOK, sensor)
 }
 
-func (c *SensorController) GetAll(w http.ResponseWriter, r *http.Request) {
-	rows, err := c.DB.Query("SELECT id, modelo, estado, fecha_instalacion, sala_id, variable_id FROM sensor")
+func (sc *SensorController) GetAll(c *gin.Context) {
+	sensores, err := sc.SensorService.GetAllSensors()
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	defer rows.Close()
 
-	var sensores []models.Sensor
-	for rows.Next() {
-		var sensor models.Sensor
-		if err := rows.Scan(&sensor.ID, &sensor.Modelo, &sensor.Estado,
-			&sensor.FechaInstalacion, &sensor.SalaID, &sensor.VariableID); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		sensores = append(sensores, sensor)
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(sensores)
+	c.JSON(http.StatusOK, sensores)
 }
 
-func (c *SensorController) Update(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id, err := strconv.Atoi(vars["id"])
+func (sc *SensorController) Update(c *gin.Context) {
+	id := c.Param("id")
+	idUint, err := strconv.ParseUint(id, 10, 64)
 	if err != nil {
-		http.Error(w, "ID inválido", http.StatusBadRequest)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID inválido"})
 		return
 	}
 
 	var sensor models.Sensor
-	if err := json.NewDecoder(r.Body).Decode(&sensor); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	if err := c.ShouldBindJSON(&sensor); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	query := `UPDATE sensor 
-			  SET modelo = $1, estado = $2, fecha_instalacion = $3, sala_id = $4, variable_id = $5 
-			  WHERE id = $6`
-	result, err := c.DB.Exec(query, sensor.Modelo, sensor.Estado,
-		sensor.FechaInstalacion, sensor.SalaID, sensor.VariableID, id)
+	updatedSensor, err := sc.SensorService.UpdateSensor(uint(idUint), &sensor)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	if rowsAffected == 0 {
-		http.Error(w, "Sensor no encontrado", http.StatusNotFound)
-		return
-	}
-
-	sensor.ID = id
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(sensor)
+	c.JSON(http.StatusOK, updatedSensor)
 }
 
-func (c *SensorController) Delete(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id, err := strconv.Atoi(vars["id"])
+func (sc *SensorController) Delete(c *gin.Context) {
+	id := c.Param("id")
+	idUint, err := strconv.ParseUint(id, 10, 64)
 	if err != nil {
-		http.Error(w, "ID inválido", http.StatusBadRequest)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID inválido"})
 		return
 	}
 
-	result, err := c.DB.Exec("DELETE FROM sensor WHERE id = $1", id)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	if err := sc.SensorService.DeleteSensor(uint(idUint)); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	if rowsAffected == 0 {
-		http.Error(w, "Sensor no encontrado", http.StatusNotFound)
-		return
-	}
-
-	w.WriteHeader(http.StatusNoContent)
+	c.JSON(http.StatusNoContent, nil)
 }

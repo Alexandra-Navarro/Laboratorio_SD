@@ -1,149 +1,99 @@
 package controllers
 
 import (
-	"database/sql"
-	"encoding/json"
 	"net/http"
 	"strconv"
 
 	"github.com/Alexandra-Navarro/Laboratorio_SD/backend/models"
-	"github.com/gorilla/mux"
+	"github.com/Alexandra-Navarro/Laboratorio_SD/backend/services"
+	"github.com/gin-gonic/gin"
 )
 
 type SalaController struct {
-	DB *sql.DB
+	SalaService *services.SalaService
 }
 
-func NewSalaController(db *sql.DB) *SalaController {
-	return &SalaController{DB: db}
+func NewSalaController(service *services.SalaService) *SalaController {
+	return &SalaController{SalaService: service}
 }
 
-func (c *SalaController) Create(w http.ResponseWriter, r *http.Request) {
+func (sc *SalaController) Create(c *gin.Context) {
 	var sala models.Sala
-	if err := json.NewDecoder(r.Body).Decode(&sala); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	if err := c.ShouldBindJSON(&sala); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	query := `INSERT INTO sala (nombre, escuela_id) VALUES ($1, $2) RETURNING id`
-	err := c.DB.QueryRow(query, sala.Nombre, sala.EscuelaID).Scan(&sala.ID)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	if err := sc.SalaService.CreateSala(&sala); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(sala)
+	c.JSON(http.StatusCreated, sala)
 }
 
-func (c *SalaController) GetByID(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id, err := strconv.Atoi(vars["id"])
+func (sc *SalaController) GetByID(c *gin.Context) {
+	id := c.Param("id")
+	idUint, err := strconv.ParseUint(id, 10, 64)
 	if err != nil {
-		http.Error(w, "ID inválido", http.StatusBadRequest)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID inválido"})
 		return
 	}
 
-	var sala models.Sala
-	query := `SELECT id, nombre, escuela_id FROM sala WHERE id = $1`
-	err = c.DB.QueryRow(query, id).Scan(&sala.ID, &sala.Nombre, &sala.EscuelaID)
+	sala, err := sc.SalaService.GetSalaByID(uint(idUint))
 	if err != nil {
-		if err == sql.ErrNoRows {
-			http.Error(w, "Sala no encontrada", http.StatusNotFound)
-			return
-		}
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		c.JSON(http.StatusNotFound, gin.H{"error": "Sala no encontrada"})
 		return
 	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(sala)
+	c.JSON(http.StatusOK, sala)
 }
 
-func (c *SalaController) GetAll(w http.ResponseWriter, r *http.Request) {
-	rows, err := c.DB.Query("SELECT id, nombre, escuela_id FROM sala")
+func (sc *SalaController) GetAll(c *gin.Context) {
+	salas, err := sc.SalaService.GetAllSalas()
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	defer rows.Close()
 
-	var salas []models.Sala
-	for rows.Next() {
-		var sala models.Sala
-		if err := rows.Scan(&sala.ID, &sala.Nombre, &sala.EscuelaID); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		salas = append(salas, sala)
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(salas)
+	c.JSON(http.StatusOK, salas)
 }
 
-func (c *SalaController) Update(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id, err := strconv.Atoi(vars["id"])
+func (sc *SalaController) Update(c *gin.Context) {
+	id := c.Param("id")
+	idUint, err := strconv.ParseUint(id, 10, 64)
 	if err != nil {
-		http.Error(w, "ID inválido", http.StatusBadRequest)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID inválido"})
 		return
 	}
 
 	var sala models.Sala
-	if err := json.NewDecoder(r.Body).Decode(&sala); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+	if err := c.ShouldBindJSON(&sala); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 	}
 
-	query := `UPDATE sala SET nombre = $1, escuela_id = $2 WHERE id = $3`
-	result, err := c.DB.Exec(query, sala.Nombre, sala.EscuelaID, id)
+	updatedSala, err := sc.SalaService.UpdateSala(uint(idUint), &sala)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	sala = *updatedSala
 
-	if rowsAffected == 0 {
-		http.Error(w, "Sala no encontrada", http.StatusNotFound)
-		return
-	}
-
-	sala.ID = id
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(sala)
+	c.JSON(http.StatusOK, sala)
 }
 
-func (c *SalaController) Delete(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id, err := strconv.Atoi(vars["id"])
+func (sc *SalaController) Delete(c *gin.Context) {
+	id := c.Param("id")
+	idUint, err := strconv.ParseUint(id, 10, 64)
 	if err != nil {
-		http.Error(w, "ID inválido", http.StatusBadRequest)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID inválido"})
 		return
 	}
 
-	result, err := c.DB.Exec("DELETE FROM sala WHERE id = $1", id)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	if err := sc.SalaService.DeleteSala(uint(idUint)); err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Sala no encontrada"})
 		return
 	}
 
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	if rowsAffected == 0 {
-		http.Error(w, "Sala no encontrada", http.StatusNotFound)
-		return
-	}
-
-	w.WriteHeader(http.StatusNoContent)
+	c.JSON(http.StatusNoContent, nil)
 }

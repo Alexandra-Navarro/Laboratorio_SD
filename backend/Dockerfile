@@ -1,22 +1,24 @@
-FROM golang:1.19-alpine
-
+FROM golang:1.23-alpine
 WORKDIR /app
 
-# Instalar dependencias del sistema
-RUN apk add --no-cache gcc musl-dev
+# Instala herramientas necesarias
+RUN apk add --no-cache \
+      netcat-openbsd \
+      git \
+      ca-certificates \
+      gcc \
+      musl-dev
 
-# Copiar archivos de dependencias
-COPY go.mod go.sum ./
-RUN go mod download
-
-# Copiar el código fuente
+# Copia todo el proyecto (incluye go.mod y fuente)
 COPY . .
 
-# Compilar la aplicación
+# Limpia y actualiza go.mod/go.sum según el código
+RUN go mod tidy
+
+# Compila la aplicación
 RUN go build -o main .
 
-# Exponer el puerto
 EXPOSE 8080
-
-# Ejecutar la aplicación
-CMD ["./main"] 
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]

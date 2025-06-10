@@ -1,157 +1,101 @@
 package controllers
 
 import (
-	"database/sql"
-	"encoding/json"
 	"net/http"
 	"strconv"
 
 	"github.com/Alexandra-Navarro/Laboratorio_SD/backend/models"
-	"github.com/gorilla/mux"
+	"github.com/Alexandra-Navarro/Laboratorio_SD/backend/services"
+	"github.com/gin-gonic/gin"
 )
 
 type AlertaController struct {
-	DB *sql.DB
+	AlertaService *services.AlertaService
 }
 
-func NewAlertaController(db *sql.DB) *AlertaController {
-	return &AlertaController{DB: db}
+func NewAlertaController(service *services.AlertaService) *AlertaController {
+	return &AlertaController{AlertaService: service}
 }
 
-func (c *AlertaController) Create(w http.ResponseWriter, r *http.Request) {
+func (ac *AlertaController) Create(c *gin.Context) {
 	var alerta models.Alerta
-	if err := json.NewDecoder(r.Body).Decode(&alerta); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	if err := c.ShouldBindJSON(&alerta); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	query := `INSERT INTO alerta (tipo, descripcion, valor_detectado, umbral, fecha, sala_id) 
-			  VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`
-	err := c.DB.QueryRow(query, alerta.Tipo, alerta.Descripcion,
-		alerta.ValorDetectado, alerta.Umbral, alerta.Fecha, alerta.SalaID).Scan(&alerta.ID)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	if err := ac.AlertaService.CreateAlerta(&alerta); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(alerta)
+	c.JSON(http.StatusCreated, alerta)
 }
 
-func (c *AlertaController) GetByID(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id, err := strconv.Atoi(vars["id"])
+func (ac *AlertaController) GetByID(c *gin.Context) {
+	id := c.Param("id")
+	idUint, err := strconv.ParseUint(id, 10, 64)
 	if err != nil {
-		http.Error(w, "ID inválido", http.StatusBadRequest)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID inválido"})
 		return
 	}
 
+	alerta, err := ac.AlertaService.GetAlertaByID(uint(idUint))
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Alerta no encontrada"})
+		return
+	}
+
+	c.JSON(http.StatusOK, alerta)
+}
+
+func (ac *AlertaController) GetAll(c *gin.Context) {
+	alertas, err := ac.AlertaService.GetAllAlertas()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, alertas)
+}
+
+func (ac *AlertaController) Update(c *gin.Context) {
+	id := c.Param("id")
 	var alerta models.Alerta
-	query := `SELECT id, tipo, descripcion, valor_detectado, umbral, fecha, sala_id 
-			  FROM alerta WHERE id = $1`
-	err = c.DB.QueryRow(query, id).Scan(&alerta.ID, &alerta.Tipo, &alerta.Descripcion,
-		&alerta.ValorDetectado, &alerta.Umbral, &alerta.Fecha, &alerta.SalaID)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			http.Error(w, "Alerta no encontrada", http.StatusNotFound)
-			return
-		}
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	if err := c.ShouldBindJSON(&alerta); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(alerta)
+	idUint, err := strconv.ParseUint(id, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID inválido"})
+		return
+	}
+
+	updatedAlerta, err := ac.AlertaService.UpdateAlerta(uint(idUint), &alerta)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	alerta = *updatedAlerta
+
+	c.JSON(http.StatusOK, alerta)
 }
 
-func (c *AlertaController) GetAll(w http.ResponseWriter, r *http.Request) {
-	rows, err := c.DB.Query("SELECT id, tipo, descripcion, valor_detectado, umbral, fecha, sala_id FROM alerta")
+func (ac *AlertaController) Delete(c *gin.Context) {
+	id := c.Param("id")
+	idUint, err := strconv.ParseUint(id, 10, 64)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	defer rows.Close()
-
-	var alertas []models.Alerta
-	for rows.Next() {
-		var alerta models.Alerta
-		if err := rows.Scan(&alerta.ID, &alerta.Tipo, &alerta.Descripcion,
-			&alerta.ValorDetectado, &alerta.Umbral, &alerta.Fecha, &alerta.SalaID); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		alertas = append(alertas, alerta)
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(alertas)
-}
-
-func (c *AlertaController) Update(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id, err := strconv.Atoi(vars["id"])
-	if err != nil {
-		http.Error(w, "ID inválido", http.StatusBadRequest)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID inválido"})
 		return
 	}
 
-	var alerta models.Alerta
-	if err := json.NewDecoder(r.Body).Decode(&alerta); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	if err := ac.AlertaService.DeleteAlerta(uint(idUint)); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	query := `UPDATE alerta 
-			  SET tipo = $1, descripcion = $2, valor_detectado = $3, umbral = $4, fecha = $5, sala_id = $6 
-			  WHERE id = $7`
-	result, err := c.DB.Exec(query, alerta.Tipo, alerta.Descripcion,
-		alerta.ValorDetectado, alerta.Umbral, alerta.Fecha, alerta.SalaID, id)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	if rowsAffected == 0 {
-		http.Error(w, "Alerta no encontrada", http.StatusNotFound)
-		return
-	}
-
-	alerta.ID = id
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(alerta)
-}
-
-func (c *AlertaController) Delete(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id, err := strconv.Atoi(vars["id"])
-	if err != nil {
-		http.Error(w, "ID inválido", http.StatusBadRequest)
-		return
-	}
-
-	result, err := c.DB.Exec("DELETE FROM alerta WHERE id = $1", id)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	if rowsAffected == 0 {
-		http.Error(w, "Alerta no encontrada", http.StatusNotFound)
-		return
-	}
-
-	w.WriteHeader(http.StatusNoContent)
+	c.JSON(http.StatusNoContent, nil)
 }

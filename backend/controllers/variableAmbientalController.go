@@ -1,157 +1,110 @@
 package controllers
 
 import (
-	"database/sql"
-	"encoding/json"
 	"net/http"
 	"strconv"
 
 	"github.com/Alexandra-Navarro/Laboratorio_SD/backend/models"
-	"github.com/gorilla/mux"
+	"github.com/Alexandra-Navarro/Laboratorio_SD/backend/services"
+	"github.com/gin-gonic/gin"
 )
 
 type VariableAmbientalController struct {
-	DB *sql.DB
+	VariableAmbientalService *services.VariableAmbientalService
 }
 
-func NewVariableAmbientalController(db *sql.DB) *VariableAmbientalController {
-	return &VariableAmbientalController{DB: db}
+func NewVariableAmbientalController(service *services.VariableAmbientalService) *VariableAmbientalController {
+	return &VariableAmbientalController{VariableAmbientalService: service}
 }
 
-func (c *VariableAmbientalController) Create(w http.ResponseWriter, r *http.Request) {
+func (vc *VariableAmbientalController) Create(c *gin.Context) {
 	var variable models.VariableAmbiental
-	if err := json.NewDecoder(r.Body).Decode(&variable); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	if err := c.ShouldBindJSON(&variable); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	query := `INSERT INTO variable_ambiental (nombre, unidad_medida, umbral_bajo, umbral_alto) 
-			  VALUES ($1, $2, $3, $4) RETURNING id`
-	err := c.DB.QueryRow(query, variable.Nombre, variable.UnidadMedida,
-		variable.UmbralBajo, variable.UmbralAlto).Scan(&variable.ID)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	if err := vc.VariableAmbientalService.CreateVariableAmbiental(&variable); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(variable)
+	c.JSON(http.StatusCreated, variable)
 }
 
-func (c *VariableAmbientalController) GetByID(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id, err := strconv.Atoi(vars["id"])
+func (vc *VariableAmbientalController) GetByID(c *gin.Context) {
+	idStr := c.Param("id")
+	idUint, err := strconv.ParseUint(idStr, 10, 64)
 	if err != nil {
-		http.Error(w, "ID inválido", http.StatusBadRequest)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID inválido"})
 		return
 	}
 
-	var variable models.VariableAmbiental
-	query := `SELECT id, nombre, unidad_medida, umbral_bajo, umbral_alto 
-			  FROM variable_ambiental WHERE id = $1`
-	err = c.DB.QueryRow(query, id).Scan(&variable.ID, &variable.Nombre,
-		&variable.UnidadMedida, &variable.UmbralBajo, &variable.UmbralAlto)
+	variable, err := vc.VariableAmbientalService.GetVariableAmbientalByID(uint(idUint))
 	if err != nil {
-		if err == sql.ErrNoRows {
-			http.Error(w, "Variable ambiental no encontrada", http.StatusNotFound)
-			return
-		}
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		c.JSON(http.StatusNotFound, gin.H{"error": "Variable ambiental no encontrada"})
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(variable)
+	c.JSON(http.StatusOK, variable)
 }
 
-func (c *VariableAmbientalController) GetAll(w http.ResponseWriter, r *http.Request) {
-	rows, err := c.DB.Query("SELECT id, nombre, unidad_medida, umbral_bajo, umbral_alto FROM variable_ambiental")
+func (vc *VariableAmbientalController) GetAll(c *gin.Context) {
+	variables, err := vc.VariableAmbientalService.GetAllVariablesAmbientales()
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	defer rows.Close()
-
-	var variables []models.VariableAmbiental
-	for rows.Next() {
-		var variable models.VariableAmbiental
-		if err := rows.Scan(&variable.ID, &variable.Nombre, &variable.UnidadMedida,
-			&variable.UmbralBajo, &variable.UmbralAlto); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		variables = append(variables, variable)
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(variables)
+	c.JSON(http.StatusOK, variables)
 }
 
-func (c *VariableAmbientalController) Update(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id, err := strconv.Atoi(vars["id"])
+func (vc *VariableAmbientalController) Update(c *gin.Context) {
+	idStr := c.Param("id")
+	idUint, err := strconv.ParseUint(idStr, 10, 64)
 	if err != nil {
-		http.Error(w, "ID inválido", http.StatusBadRequest)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID inválido"})
 		return
 	}
 
-	var variable models.VariableAmbiental
-	if err := json.NewDecoder(r.Body).Decode(&variable); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	var nueva models.VariableAmbiental
+	if err := c.ShouldBindJSON(&nueva); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	query := `UPDATE variable_ambiental 
-			  SET nombre = $1, unidad_medida = $2, umbral_bajo = $3, umbral_alto = $4 
-			  WHERE id = $5`
-	result, err := c.DB.Exec(query, variable.Nombre, variable.UnidadMedida,
-		variable.UmbralBajo, variable.UmbralAlto, id)
+	// Obtener la actual
+	variable, err := vc.VariableAmbientalService.GetVariableAmbientalByID(uint(idUint))
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		c.JSON(http.StatusNotFound, gin.H{"error": "Variable ambiental no encontrada"})
 		return
 	}
 
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	// Actualizar campos
+	variable.Nombre = nueva.Nombre
+	variable.UnidadMedida = nueva.UnidadMedida
+	variable.UmbralBajo = nueva.UmbralBajo
+	variable.UmbralAlto = nueva.UmbralAlto
+
+	if err := vc.VariableAmbientalService.DB.Save(&variable).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	if rowsAffected == 0 {
-		http.Error(w, "Variable ambiental no encontrada", http.StatusNotFound)
-		return
-	}
-
-	variable.ID = id
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(variable)
+	c.JSON(http.StatusOK, variable)
 }
 
-func (c *VariableAmbientalController) Delete(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id, err := strconv.Atoi(vars["id"])
+func (vc *VariableAmbientalController) Delete(c *gin.Context) {
+	idStr := c.Param("id")
+	idUint, err := strconv.ParseUint(idStr, 10, 64)
 	if err != nil {
-		http.Error(w, "ID inválido", http.StatusBadRequest)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID inválido"})
 		return
 	}
 
-	result, err := c.DB.Exec("DELETE FROM variable_ambiental WHERE id = $1", id)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	if err := vc.VariableAmbientalService.DeleteVariableAmbiental(uint(idUint)); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	if rowsAffected == 0 {
-		http.Error(w, "Variable ambiental no encontrada", http.StatusNotFound)
-		return
-	}
-
-	w.WriteHeader(http.StatusNoContent)
+	c.JSON(http.StatusNoContent, nil)
 }

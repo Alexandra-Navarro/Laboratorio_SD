@@ -7,22 +7,31 @@ services:
       - "1883:1883"
       - "9001:9001"
     volumes:
-      - ./mosquitto/config:/mosquitto/config
+      - ./mosquitto/config:/mosquitto/config:ro
       - ./mosquitto/data:/mosquitto/data
       - ./mosquitto/log:/mosquitto/log
+    environment:
+      - MQTT_USER=${MQTT_USER:-monitoring}
+      - MQTT_PASSWORD=${MQTT_PASSWORD:-monitoring123}
     networks:
       - monitoring-network
 
   postgres:
     image: postgres:14-alpine
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-monitoring}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-monitoring123}
-      POSTGRES_DB: ${POSTGRES_DB:-monitoring_db}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-MonitoreoDB}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./CreateTables.sql:/docker-entrypoint-initdb.d/CreateTables.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - monitoring-network
 
@@ -34,14 +43,20 @@ services:
       - "8080:8080"
     environment:
       - DB_HOST=postgres
-      - DB_USER=${POSTGRES_USER:-monitoring}
-      - DB_PASSWORD=${POSTGRES_PASSWORD:-monitoring123}
-      - DB_NAME=${POSTGRES_DB:-monitoring_db}
+      - DB_USER=${POSTGRES_USER:-postgres}
+      - DB_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - DB_NAME=${POSTGRES_DB:-MonitoreoDB}
       - MQTT_BROKER=mqtt-broker
       - MQTT_PORT=1883
+      - MQTT_USER=${MQTT_USER:-monitoring}
+      - MQTT_PASSWORD=${MQTT_PASSWORD:-monitoring123}
+      - SERVER_PORT=8080
+      - SERVER_HOST=0.0.0.0
     depends_on:
-      - postgres
-      - mqtt-broker
+      postgres:
+        condition: service_healthy
+      mqtt-broker:
+        condition: service_started
     networks:
       - monitoring-network
 
@@ -51,6 +66,8 @@ services:
       dockerfile: Dockerfile
     ports:
       - "80:80"
+    environment:
+      - BACKEND_URL=http://backend:8080
     depends_on:
       - backend
     networks:
@@ -63,10 +80,14 @@ services:
     environment:
       - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin123}
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
     volumes:
       - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     networks:
       - monitoring-network
 
@@ -77,6 +98,9 @@ services:
     environment:
       - MQTT_BROKER=mqtt-broker
       - MQTT_PORT=1883
+      - MQTT_USER=${MQTT_USER:-monitoring}
+      - MQTT_PASSWORD=${MQTT_PASSWORD:-monitoring123}
+      - SEND_INTERVAL=5000
     depends_on:
       - mqtt-broker
     networks:
