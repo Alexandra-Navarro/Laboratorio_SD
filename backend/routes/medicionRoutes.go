@@ -8,15 +8,14 @@ import (
 )
 
 func InitMedicionRoutes(api *gin.RouterGroup) {
-	medicionService := services.NewMedicionService(config.DB)
+	alertaService := services.NewAlertaService(config.DB)
+	medicionService := services.NewMedicionService(config.DB, alertaService)
 	medicionController := controllers.NewMedicionController(medicionService)
 
 	mediciones := api.Group("/mediciones")
 	{
-		mediciones.POST("/", medicionController.Create)
-		mediciones.GET("/", medicionController.GetAll)
-		mediciones.GET("/:id", medicionController.GetByID)
-		mediciones.PUT("/:id", medicionController.Update)
-		mediciones.DELETE("/:id", medicionController.Delete)
+		mediciones.POST("/", medicionController.CreateMedicion)
+		mediciones.GET("/sala/:sala_id", medicionController.GetMedicionesBySala)
+		mediciones.GET("/variable/:variable_id", medicionController.GetMedicionesByVariable)
 	}
 }

@@ -10,26 +10,63 @@ import (
 )
 
 type MedicionController struct {
-	MedicionService *services.MedicionService
+	medicionService *services.MedicionService
 }
 
-func NewMedicionController(service *services.MedicionService) *MedicionController {
-	return &MedicionController{MedicionService: service}
+func NewMedicionController(medicionService *services.MedicionService) *MedicionController {
+	return &MedicionController{
+		medicionService: medicionService,
+	}
 }
 
-func (mc *MedicionController) Create(c *gin.Context) {
+// CreateMedicion maneja la creación de una nueva medición
+func (c *MedicionController) CreateMedicion(ctx *gin.Context) {
 	var medicion models.Medicion
-	if err := c.ShouldBindJSON(&medicion); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	if err := ctx.ShouldBindJSON(&medicion); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	if err := mc.MedicionService.CreateMedicion(&medicion); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	if err := c.medicionService.CreateMedicion(&medicion); err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusCreated, medicion)
+	ctx.JSON(http.StatusCreated, medicion)
+}
+
+// GetMedicionesBySala obtiene las mediciones de una sala específica
+func (c *MedicionController) GetMedicionesBySala(ctx *gin.Context) {
+	salaID, err := strconv.Atoi(ctx.Param("sala_id"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "ID de sala inválido"})
+		return
+	}
+
+	mediciones, err := c.medicionService.GetMedicionesBySala(salaID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, mediciones)
+}
+
+// GetMedicionesByVariable obtiene las mediciones de una variable específica
+func (c *MedicionController) GetMedicionesByVariable(ctx *gin.Context) {
+	variableID, err := strconv.Atoi(ctx.Param("variable_id"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "ID de variable inválido"})
+		return
+	}
+
+	mediciones, err := c.medicionService.GetMedicionesByVariable(variableID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, mediciones)
 }
 
 func (mc *MedicionController) GetByID(c *gin.Context) {
@@ -40,7 +77,7 @@ func (mc *MedicionController) GetByID(c *gin.Context) {
 		return
 	}
 
-	medicion, err := mc.MedicionService.GetMedicionByID(uint(idUint))
+	medicion, err := mc.medicionService.GetMedicionByID(uint(idUint))
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Medición no encontrada"})
 		return
@@ -50,7 +87,7 @@ func (mc *MedicionController) GetByID(c *gin.Context) {
 }
 
 func (mc *MedicionController) GetAll(c *gin.Context) {
-	mediciones, err := mc.MedicionService.GetAllMediciones()
+	mediciones, err := mc.medicionService.GetAllMediciones()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -73,7 +110,7 @@ func (mc *MedicionController) Update(c *gin.Context) {
 		return
 	}
 
-	updatedMedicion, err := mc.MedicionService.UpdateMedicion(uint(idUint), &medicion)
+	updatedMedicion, err := mc.medicionService.UpdateMedicion(uint(idUint), &medicion)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -92,7 +129,7 @@ func (mc *MedicionController) Delete(c *gin.Context) {
 		return
 	}
 
-	if err := mc.MedicionService.DeleteMedicion(uint(idUint)); err != nil {
+	if err := mc.medicionService.DeleteMedicion(uint(idUint)); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
