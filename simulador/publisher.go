@@ -97,7 +97,10 @@ func main() {
 	}
 	log.Printf("Connected to MQTT broker at %s:%s", broker, port)
 
-	for i := 0; i <= maxMediciones; i++ {
+	log.Println("Esperando 5 segundos para asegurar que el subscriber esté conectado...")
+	time.Sleep(10 * time.Second)
+
+	for i := 0; i < maxMediciones; i++ {
 		for _, roomID := range rooms {
 			data := generateSensorData(roomID)
 			payload, err := json.Marshal(data)

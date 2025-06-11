@@ -49,18 +49,17 @@ func initDB(cfg *config.Config) {
 		cfg.DBHost, cfg.DBPort, cfg.DBUser, cfg.DBPassword, cfg.DBName)
 
 	var err error
-	db, err = sql.Open("postgres", connStr)
-	if err != nil {
-		log.Fatal(err)
+	for i := 0; i < 10; i++ {
+		db, err = sql.Open("postgres", connStr)
+		if err == nil && db.Ping() == nil {
+			log.Println("Conexión a PostgreSQL establecida")
+			return
+		}
+		log.Printf("Esperando conexión a PostgreSQL... (%d/10)", i+1)
+		time.Sleep(3 * time.Second)
 	}
 
-	// Verificar conexión
-	err = db.Ping()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	log.Println("Conexión a PostgreSQL establecida")
+	log.Fatalf("No se pudo conectar a PostgreSQL: %v", err)
 }
 
 func initMQTT(cfg *config.Config, sensorService *services.SensorService) {

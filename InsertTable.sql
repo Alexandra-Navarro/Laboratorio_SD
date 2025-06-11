@@ -71,3 +71,7 @@ INSERT INTO sensor (modelo, estado, fecha_instalacion, sala_id, variable_id) VAL
 ('MH-Z19', 'activo', CURRENT_DATE, 5, 3), -- CO2
 ('KY-038', 'activo', CURRENT_DATE, 5, 4), -- Ruido
 ('LDR', 'activo', CURRENT_DATE, 5, 5); -- Iluminación
+
+-- Insertar usuario normal
+INSERT INTO usuario (rut_usuario, nombre, email, password, rol, escuela_id) VALUES 
+('12345678-9', 'Usuario Demo', 'usuario@demo.cl', 'usuario123', 'user', 1);

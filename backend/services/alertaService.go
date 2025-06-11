@@ -1,6 +1,7 @@
 package services
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/Alexandra-Navarro/Laboratorio_SD/backend/models"
@@ -65,80 +66,57 @@ func (s *AlertaService) DeleteAlerta(id uint) error {
 	return nil
 }
 
-// VerificarUmbrales verifica si una medición supera los umbrales y crea alertas si es necesario
 func (s *AlertaService) VerificarUmbrales(medicion *models.Medicion) error {
-	// Obtener la variable ambiental asociada a la medición
+	// Obtener el sensor asociado a la medición
+	var sensor models.Sensor
+	if err := s.DB.First(&sensor, "id = ?", medicion.SensorID).Error; err != nil {
+		return fmt.Errorf("error al obtener sensor: %w", err)
+	}
+
+	// Obtener la variable ambiental del sensor
 	var variable models.VariableAmbiental
-	if err := s.DB.First(&variable, "id = ?", medicion.VariableID).Error; err != nil {
-		return err
+	if err := s.DB.First(&variable, "id = ?", sensor.VariableID).Error; err != nil {
+		return fmt.Errorf("error al obtener variable ambiental: %w", err)
 	}
 
-	// Determinar el tipo de alerta según la variable y el valor
-	var tipoAlerta string
-	var descripcion string
+	// Determinar el tipo de alerta según los umbrales definidos
+	var tipoAlerta, descripcion, umbral string
 
-	switch variable.Nombre {
-	case "Temperatura":
-		if medicion.Valor < 20 || medicion.Valor > 27 {
-			tipoAlerta = "critico"
-			descripcion = "Temperatura fuera del rango crítico"
-		} else if medicion.Valor >= 25 && medicion.Valor <= 27 {
-			tipoAlerta = "preventivo"
-			descripcion = "Temperatura en rango preventivo"
-		} else if medicion.Valor >= 20 && medicion.Valor <= 24 {
-			tipoAlerta = "informativo"
-			descripcion = "Temperatura en rango informativo"
-		}
-
-	case "Humedad":
-		if medicion.Valor < 30 || medicion.Valor > 70 {
-			tipoAlerta = "critico"
-			descripcion = "Humedad fuera del rango crítico"
-		} else if (medicion.Valor >= 30 && medicion.Valor < 40) || (medicion.Valor > 60 && medicion.Valor <= 70) {
-			tipoAlerta = "preventivo"
-			descripcion = "Humedad en rango preventivo"
-		} else if medicion.Valor >= 40 && medicion.Valor <= 60 {
-			tipoAlerta = "informativo"
-			descripcion = "Humedad en rango informativo"
-		}
-
-	case "CO2":
-		if medicion.Valor >= 1500 {
-			tipoAlerta = "critico"
-			descripcion = "Nivel de CO2 crítico"
-		} else if medicion.Valor > 1000 && medicion.Valor < 1500 {
-			tipoAlerta = "preventivo"
-			descripcion = "Nivel de CO2 en rango preventivo"
-		} else if medicion.Valor >= 400 && medicion.Valor <= 1000 {
-			tipoAlerta = "informativo"
-			descripcion = "Nivel de CO2 en rango informativo"
-		}
-
-	case "Ruido":
-		if medicion.Valor > 55 {
-			tipoAlerta = "critico"
-			descripcion = "Nivel de ruido crítico"
-		} else if medicion.Valor >= 36 && medicion.Valor <= 55 {
-			tipoAlerta = "preventivo"
-			descripcion = "Nivel de ruido en rango preventivo"
-		} else if medicion.Valor < 35 {
-			tipoAlerta = "informativo"
-			descripcion = "Nivel de ruido en rango informativo"
-		}
+	switch {
+	case medicion.Valor < variable.UmbralBajo:
+		tipoAlerta = "critico"
+		descripcion = fmt.Sprintf("%s bajo el umbral mínimo", variable.Nombre)
+		umbral = "bajo"
+	case medicion.Valor > variable.UmbralAlto:
+		tipoAlerta = "critico"
+		descripcion = fmt.Sprintf("%s sobre el umbral máximo", variable.Nombre)
+		umbral = "alto"
+	case variable.Nombre == "Temperatura" && medicion.Valor >= 25 && medicion.Valor <= variable.UmbralAlto:
+		tipoAlerta = "preventivo"
+		descripcion = "Temperatura en rango preventivo"
+		umbral = "variable"
+	case variable.Nombre == "CO2" && medicion.Valor > 1000 && medicion.Valor <= 1500:
+		tipoAlerta = "preventivo"
+		descripcion = "CO₂ en rango preventivo"
+		umbral = "variable"
+	default:
+		tipoAlerta = "informativo"
+		descripcion = fmt.Sprintf("%s en condiciones normales", variable.Nombre)
+		umbral = "variable"
 	}
 
-	// Si se detectó una alerta, crearla
+	// Crear la alerta si aplica
 	if tipoAlerta != "" {
 		alerta := models.Alerta{
 			Tipo:           tipoAlerta,
 			Descripcion:    descripcion,
 			ValorDetectado: medicion.Valor,
-			Umbral:         "variable",
+			Umbral:         umbral,
 			Fecha:          time.Now(),
-			SalaID:         medicion.SalaID,
+			SalaID:         sensor.SalaID,
 		}
 		if err := s.CreateAlerta(&alerta); err != nil {
-			return err
+			return fmt.Errorf("error al crear alerta: %w", err)
 		}
 	}
 
