@@ -99,3 +99,20 @@ func (ac *AlertaController) Delete(c *gin.Context) {
 
 	c.JSON(http.StatusNoContent, nil)
 }
+
+func (ac *AlertaController) GetAlertasBySalaID(c *gin.Context) {
+	salaID := c.Param("id")
+	idUint, err := strconv.ParseUint(salaID, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID inválido"})
+		return
+	}
+
+	alertas, err := ac.AlertaService.GetAlertasBySalaID(uint(idUint))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, alertas)
+}

@@ -18,5 +18,6 @@ func InitAlertaRoutes(api *gin.RouterGroup) {
 		alertas.GET("/", alertaController.GetAll)
 		alertas.PUT("/:id", alertaController.Update)
 		alertas.DELETE("/:id", alertaController.Delete)
+		alertas.GET("/sala/:id", alertaController.GetAlertasBySalaID)
 	}
 }

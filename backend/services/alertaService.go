@@ -122,3 +122,11 @@ func (s *AlertaService) VerificarUmbrales(medicion *models.Medicion) error {
 
 	return nil
 }
+
+func (s *AlertaService) GetAlertasBySalaID(salaID uint) ([]models.Alerta, error) {
+	var alertas []models.Alerta
+	if err := s.DB.Where("sala_id = ?", salaID).Find(&alertas).Error; err != nil {
+		return nil, err
+	}
+	return alertas, nil
+}

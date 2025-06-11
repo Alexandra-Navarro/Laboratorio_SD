@@ -101,14 +101,6 @@
             </v-card-text>
           </v-card>
         </v-col>
-        <v-col cols="12" sm="6" md="3">
-          <v-card class="stat-card stat-informativas">
-            <v-card-text class="text-center">
-              <div class="stat-number">{{ estadisticas.informativas }}</div>
-              <div class="stat-label">Informativas</div>
-            </v-card-text>
-          </v-card>
-        </v-col>
       </v-row>
     </div>
 
@@ -151,12 +143,10 @@ export default {
         total: 0,
         criticas: 0,
         preventivas: 0,
-        informativas: 0
       },
       tiposAlerta: [
         { text: 'Crítico', value: 'critico' },
         { text: 'Preventivo', value: 'preventivo' },
-        { text: 'Informativo', value: 'informativo' }
       ]
     }
   },
@@ -212,7 +202,6 @@ export default {
         total: alertas.length,
         criticas: alertas.filter(a => a.tipo === 'critico').length,
         preventivas: alertas.filter(a => a.tipo === 'preventivo').length,
-        informativas: alertas.filter(a => a.tipo === 'informativo').length
       }
     },
     
@@ -305,9 +294,7 @@ export default {
   color: #ff9800;
 }
 
-.stat-informativas .stat-number {
-  color: #4caf50;
-}
+
 
 .alerts-content {
   max-width: 1200px;
