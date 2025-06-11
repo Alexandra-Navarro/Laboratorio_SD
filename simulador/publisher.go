@@ -29,14 +29,53 @@ var (
 const maxMediciones = 3
 
 func generateSensorData(roomID string) SensorData {
+	// Generar valores base con una distribución más realista
+	// Temperatura: 20-24°C normal, ocasionalmente fuera de rango
+	temperatura := 20.0 + rand.Float64()*4.0
+	if rand.Float64() < 0.2 { // 20% de probabilidad de temperatura fuera de rango
+		if rand.Float64() < 0.5 {
+			temperatura = 18.0 + rand.Float64()*2.0 // Temperatura baja
+		} else {
+			temperatura = 24.0 + rand.Float64()*4.0 // Temperatura alta
+		}
+	}
+
+	// Humedad: 40-60% normal, ocasionalmente fuera de rango
+	humedad := 40.0 + rand.Float64()*20.0
+	if rand.Float64() < 0.15 { // 15% de probabilidad de humedad anormal
+		if rand.Float64() < 0.5 {
+			humedad = 25.0 + rand.Float64()*5.0 // Humedad baja
+		} else {
+			humedad = 60.0 + rand.Float64()*15.0 // Humedad alta
+		}
+	}
+
+	// CO2: 400-1000 ppm normal, ocasionalmente alto
+	co2 := 400.0 + rand.Float64()*600.0
+	if rand.Float64() < 0.25 { // 25% de probabilidad de CO2 alto
+		co2 = 1000.0 + rand.Float64()*1000.0
+	}
+
+	// Ruido: < 35 dB normal, ocasionalmente alto
+	ruido := 20.0 + rand.Float64()*15.0
+	if rand.Float64() < 0.1 { // 10% de probabilidad de ruido alto
+		ruido = 35.0 + rand.Float64()*30.0
+	}
+
+	// Luz: 300-700 lux normal, ocasionalmente fuera de rango
+	luz := 300.0 + rand.Float64()*400.0
+	if rand.Float64() < 0.2 { // 20% de probabilidad de luz anormal
+		luz = 100.0 + rand.Float64()*900.0
+	}
+
 	return SensorData{
 		SensorID:    sensorID,
 		Timestamp:   time.Now().UTC(),
-		Temperatura: 20 + rand.Float64()*15,    // 20-35°C
-		Humedad:     30 + rand.Float64()*50,    // 30-80%
-		CO2:         400 + rand.Float64()*1600, // 400-2000 ppm
-		Ruido:       30 + rand.Float64()*70,    // 30-100 dB
-		Luz:         100 + rand.Float64()*900,  // 100-1000 lux
+		Temperatura: temperatura,
+		Humedad:     humedad,
+		CO2:         co2,
+		Ruido:       ruido,
+		Luz:         luz,
 	}
 }
 
@@ -77,7 +116,7 @@ func main() {
 				log.Printf("Published to %s: %s", topic, string(payload))
 			}
 		}
-		time.Sleep(15 * time.Second)
+		time.Sleep(15 * time.Minute)
 	}
-	log.Println("Simulación finalizada: se enviaron 10 mediciones por sala.")
+	log.Printf("Simulación finalizada: se enviaron %d mediciones por sala.", maxMediciones)
 }
