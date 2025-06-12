@@ -82,8 +82,6 @@ func (vc *VariableAmbientalController) Update(c *gin.Context) {
 	// Actualizar campos
 	variable.Nombre = nueva.Nombre
 	variable.UnidadMedida = nueva.UnidadMedida
-	variable.UmbralBajo = nueva.UmbralBajo
-	variable.UmbralAlto = nueva.UmbralAlto
 
 	if err := vc.VariableAmbientalService.DB.Save(&variable).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

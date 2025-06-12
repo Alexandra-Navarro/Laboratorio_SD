@@ -57,6 +57,7 @@ func migrateDatabase() error {
 	err := DB.AutoMigrate(
 		&models.Escuela{},
 		&models.VariableAmbiental{},
+		&models.Umbral{},
 	)
 	if err != nil {
 		return fmt.Errorf("error al migrar la base de datos: %v", err)

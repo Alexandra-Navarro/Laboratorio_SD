@@ -79,19 +79,37 @@ func (s *AlertaService) VerificarUmbrales(medicion *models.Medicion) error {
 		return fmt.Errorf("error al obtener variable ambiental: %w", err)
 	}
 
+	// Buscar umbral personalizado
+	var umbralPersonalizado models.Umbral
+	hasCustom := false
+	if err := s.DB.Where("sala_id = ? AND variable_id = ?", sensor.SalaID, sensor.VariableID).First(&umbralPersonalizado).Error; err == nil {
+		hasCustom = true
+	}
+
+	// Determinar umbrales a usar
+	var umbralBajo, umbralAlto float64
+	if hasCustom {
+		umbralBajo = umbralPersonalizado.UmbralBajo
+		umbralAlto = umbralPersonalizado.UmbralAlto
+	} else {
+		// No hay umbral definido para esta variable en esta sala
+		fmt.Printf("[ADVERTENCIA] No hay umbral definido para sala_id=%d, variable_id=%d\n", sensor.SalaID, sensor.VariableID)
+		return nil // O puedes retornar un error si prefieres
+	}
+
 	// Determinar el tipo de alerta según los umbrales definidos
 	var tipoAlerta, descripcion, umbral string
 
 	switch {
-	case medicion.Valor < variable.UmbralBajo:
+	case medicion.Valor < umbralBajo:
 		tipoAlerta = "critico"
 		descripcion = fmt.Sprintf("%s bajo el umbral mínimo", variable.Nombre)
 		umbral = "bajo"
-	case medicion.Valor > variable.UmbralAlto:
+	case medicion.Valor > umbralAlto:
 		tipoAlerta = "critico"
 		descripcion = fmt.Sprintf("%s sobre el umbral máximo", variable.Nombre)
 		umbral = "alto"
-	case variable.Nombre == "Temperatura" && medicion.Valor >= 25 && medicion.Valor <= variable.UmbralAlto:
+	case variable.Nombre == "Temperatura" && medicion.Valor >= 25 && medicion.Valor <= umbralAlto:
 		tipoAlerta = "preventivo"
 		descripcion = "Temperatura en rango preventivo"
 		umbral = "variable"
