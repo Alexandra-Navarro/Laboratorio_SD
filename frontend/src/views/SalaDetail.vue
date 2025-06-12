@@ -59,6 +59,10 @@
               <v-icon left>mdi-history</v-icon>
               Historial
             </v-tab>
+            <v-tab>
+              <v-icon left>mdi-tune-variant</v-icon>
+              Umbrales
+            </v-tab>
           </v-tabs>
         </v-container>
       </div>
@@ -234,6 +238,67 @@
               </v-card>
             </div>
           </v-tab-item>
+  
+          <!-- Tab Umbrales -->
+          <v-tab-item>
+            <div class="umbrales-tab">
+              <v-card>
+                <v-card-title>
+                  <v-icon left>mdi-tune-variant</v-icon>
+                  Gestión de Umbrales Personalizados
+                </v-card-title>
+                <v-card-text>
+                  <v-alert type="info" outlined class="mb-4">
+                    Aquí puedes configurar umbrales personalizados para cada variable ambiental de esta sala. Si no existe un umbral personalizado, se mostrará como "No definido".
+                  </v-alert>
+                  <div class="tabla-umbrales-wrapper">
+                    <v-simple-table class="tabla-umbrales">
+                      <thead>
+                        <tr>
+                          <th>Variable</th>
+                          <th>Unidad</th>
+                          <th>Umbral Bajo</th>
+                          <th>Umbral Alto</th>
+                          <th>Acciones</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr v-for="variable in variablesAmbientales" :key="variable.id" :class="{'fila-edicion': editandoId === variable.id}">
+                          <td>{{ variable.nombre }}</td>
+                          <td>{{ variable.unidad_medida }}</td>
+                          <td>
+                            <template v-if="editandoId === variable.id">
+                              <v-text-field v-model.number="formUmbral.umbral_bajo" dense hide-details type="number" step="any" style="max-width:100px" class="campo-edicion"/>
+                            </template>
+                            <template v-else>
+                              {{ obtenerUmbral(variable.id, 'bajo') }}
+                            </template>
+                          </td>
+                          <td>
+                            <template v-if="editandoId === variable.id">
+                              <v-text-field v-model.number="formUmbral.umbral_alto" dense hide-details type="number" step="any" style="max-width:100px" class="campo-edicion"/>
+                            </template>
+                            <template v-else>
+                              {{ obtenerUmbral(variable.id, 'alto') }}
+                            </template>
+                          </td>
+                          <td>
+                            <template v-if="editandoId === variable.id">
+                              <v-btn color="success" icon small @click="guardarUmbral(variable)"><v-icon>mdi-content-save</v-icon></v-btn>
+                              <v-btn color="grey" icon small @click="cancelarEdicion"><v-icon>mdi-close</v-icon></v-btn>
+                            </template>
+                            <template v-else>
+                              <v-btn color="primary" icon small @click="editarUmbral(variable)"><v-icon>mdi-pencil</v-icon></v-btn>
+                            </template>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </v-simple-table>
+                  </div>
+                </v-card-text>
+              </v-card>
+            </div>
+          </v-tab-item>
         </v-tabs-items>
       </v-container>
     </div>
@@ -266,6 +331,13 @@
           humedad: '--',
           calidadAire: '--',
           ruido: '--'
+        },
+        variablesAmbientales: [],
+        umbralesPersonalizados: [],
+        editandoId: null,
+        formUmbral: {
+          umbral_bajo: '',
+          umbral_alto: ''
         }
       }
     },
@@ -279,6 +351,7 @@
         immediate: true,
         handler() {
           this.cargarDatosSala()
+          this.cargarVariablesYUmbrales()
         }
       }
     },
@@ -334,13 +407,11 @@
           this.alertasCriticas++
         }
         
-        // Mostrar notificación
-        if ('Notification' in window && Notification.permission === 'granted') {
-          new Notification(`Nueva Alerta - ${alerta.tipo}`, {
-            body: alerta.descripcion,
-            icon: '/favicon.ico'
-          })
-        }
+        // Mostrar notificación usando el método centralizado
+        this.$root.showNotification(
+          `Nueva Alerta - ${alerta.tipo}`,
+          `${alerta.descripcion}\nValor detectado: ${alerta.valor_detectado}`
+        )
       },
       
       actualizarConteoAlertas(alertas) {
@@ -349,6 +420,83 @@
       
       formatDate(date) {
         return new Date(date).toLocaleString('es-CL')
+      },
+      
+      async cargarVariablesYUmbrales() {
+        try {
+          // Obtener variables ambientales
+          const variablesRes = await axios.get('/api/variables')
+          this.variablesAmbientales = variablesRes.data
+          // Obtener umbrales personalizados de la sala
+          const umbralesRes = await axios.get(`/api/umbrales?sala_id=${this.salaId}`)
+          this.umbralesPersonalizados = umbralesRes.data
+        } catch (error) {
+          console.error('Error al cargar variables o umbrales:', error)
+        }
+      },
+      obtenerUmbral(variableId, tipo) {
+        const umbral = this.umbralesPersonalizados.find(u => u.variable_id === variableId)
+        if (umbral) {
+          return tipo === 'bajo' ? umbral.umbral_bajo : umbral.umbral_alto
+        }
+        return 'No definido'
+      },
+      tieneUmbralPersonalizado(variableId) {
+        return this.umbralesPersonalizados.some(u => u.variable_id === variableId)
+      },
+      editarUmbral(variable) {
+        const umbral = this.umbralesPersonalizados.find(u => u.variable_id === variable.id)
+        if (umbral) {
+          this.formUmbral = { ...umbral }
+        } else {
+          this.formUmbral = { variable_id: variable.id, sala_id: this.salaId, umbral_bajo: '', umbral_alto: '' }
+        }
+        this.editandoId = variable.id
+      },
+      cancelarEdicion() {
+        this.editandoId = null
+        this.formUmbral = { umbral_bajo: '', umbral_alto: '' }
+      },
+      async guardarUmbral(variable) {
+        try {
+          if (this.tieneUmbralPersonalizado(variable.id)) {
+            // Editar umbral existente
+            const umbral = this.umbralesPersonalizados.find(u => u.variable_id === variable.id)
+            await axios.put(`/api/umbrales/${umbral.id}`, {
+              ...umbral,
+              umbral_bajo: this.formUmbral.umbral_bajo,
+              umbral_alto: this.formUmbral.umbral_alto
+            })
+          } else {
+            // Crear nuevo umbral personalizado
+            await axios.post('/api/umbrales', {
+              sala_id: this.salaId,
+              variable_id: variable.id,
+              umbral_bajo: this.formUmbral.umbral_bajo,
+              umbral_alto: this.formUmbral.umbral_alto
+            })
+          }
+          this.editandoId = null
+          this.formUmbral = { umbral_bajo: '', umbral_alto: '' }
+          await this.cargarVariablesYUmbrales()
+          this.$root.showNotification('Umbral guardado', 'El umbral se guardó correctamente.')
+        } catch (error) {
+          console.error('Error al guardar umbral:', error)
+          this.$root.showNotification('Error', 'No se pudo guardar el umbral.', 'error')
+        }
+      },
+      async eliminarUmbral(variable) {
+        try {
+          const umbral = this.umbralesPersonalizados.find(u => u.variable_id === variable.id)
+          if (umbral) {
+            await axios.delete(`/api/umbrales/${umbral.id}`)
+            await this.cargarVariablesYUmbrales()
+            this.$root.showNotification('Umbral eliminado', 'El umbral personalizado fue eliminado.')
+          }
+        } catch (error) {
+          console.error('Error al eliminar umbral:', error)
+          this.$root.showNotification('Error', 'No se pudo eliminar el umbral.', 'error')
+        }
       }
     }
   }
@@ -471,5 +619,35 @@
     .sala-content {
       padding: 0 16px 24px;
     }
+  }
+  
+  .tabla-umbrales-wrapper {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  .tabla-umbrales {
+    width: 100%;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .tabla-umbrales th,
+  .tabla-umbrales td {
+    text-align: center;
+    vertical-align: middle;
+    padding: 8px 18px;
+  }
+  .tabla-umbrales th:not(:last-child),
+  .tabla-umbrales td:not(:last-child) {
+    border-right: 1.5px solid #e0e4ea;
+  }
+  .fila-edicion {
+    background: #e3f2fd !important;
+    transition: background 0.2s;
+  }
+  .campo-edicion {
+    margin: 0 auto;
   }
   </style>

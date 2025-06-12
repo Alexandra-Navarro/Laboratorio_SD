@@ -142,22 +142,24 @@ export default {
         
         let url;
         if (this.salaId) {
-          // Alertas de una sala específica
           url = `/api/alertas/sala/${this.salaId}`;
         } else {
-          // Todas las alertas del sistema
           url = '/api/alertas';
         }
         
         const response = await axios.get(url);
         const nuevasAlertas = response.data;
+        console.log('Alertas cargadas:', nuevasAlertas);
 
         // Verificar nuevas alertas para notificaciones
         if (nuevasAlertas.length > 0) {
           const alertaMasReciente = nuevasAlertas[0];
+          console.log('Última alerta notificada:', this.ultimaAlertaNotificada);
+          console.log('Alerta más reciente:', alertaMasReciente.id);
 
           if (this.ultimaAlertaNotificada === null) {
             this.ultimaAlertaNotificada = alertaMasReciente.id;
+            console.log('Primera carga de alertas, no se muestran notificaciones');
           } else if (alertaMasReciente.id !== this.ultimaAlertaNotificada) {
             const nuevas = [];
             for (const alerta of nuevasAlertas) {
@@ -165,9 +167,22 @@ export default {
               nuevas.push(alerta);
             }
             
-            // Emitir evento para nuevas alertas
+            console.log('Nuevas alertas detectadas:', nuevas);
+            
+            // Emitir evento para nuevas alertas y mostrar notificación
             nuevas.reverse().forEach(alerta => {
+              console.log('Procesando nueva alerta:', alerta);
               this.$emit('nueva-alerta', alerta);
+              
+              // Asegurarse de que el método showNotification esté disponible
+              if (this.$root && typeof this.$root.showNotification === 'function') {
+                this.$root.showNotification(
+                  `Nueva Alerta - ${this.formatTipo(alerta.tipo)}`,
+                  `${alerta.descripcion}\nValor detectado: ${alerta.valor_detectado}`
+                );
+              } else {
+                console.error('Método showNotification no disponible en $root');
+              }
             });
             
             this.ultimaAlertaNotificada = alertaMasReciente.id;

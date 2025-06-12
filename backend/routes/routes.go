@@ -15,4 +15,5 @@ func InitAllRoutes(r *gin.Engine) {
 	InitEscuelaRoutes(api)
 	InitMedicionRoutes(api)
 	InitSalaRoutes(api)
+	InitUmbralRoutes(api)
 }

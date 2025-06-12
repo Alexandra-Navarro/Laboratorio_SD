@@ -1,8 +1,8 @@
 -- Tabla: escuela
 CREATE TABLE escuela (
     id SERIAL PRIMARY KEY,
-    nombre VARCHAR(100) NOT NULL,
-    direccion VARCHAR(255) NOT NULL,
+    nombre VARCHAR(100) NOT NULL UNIQUE,
+    direccion VARCHAR(255) NOT NULL UNIQUE,
     comuna VARCHAR(100) NOT NULL
 );
 
@@ -18,9 +18,7 @@ CREATE TABLE sala (
 CREATE TABLE variable_ambiental (
     id SERIAL PRIMARY KEY,
     nombre VARCHAR(100) NOT NULL,
-    unidad_medida VARCHAR(50) NOT NULL,
-    umbral_bajo FLOAT NOT NULL,
-    umbral_alto FLOAT NOT NULL
+    unidad_medida VARCHAR(50) NOT NULL
 );
 
 -- Tabla: sensor
@@ -65,4 +63,15 @@ CREATE TABLE usuario (
     rol VARCHAR(50) CHECK (rol IN ('admin', 'user')),
     escuela_id INTEGER NOT NULL,
     CONSTRAINT fk_usuario_escuela FOREIGN KEY (escuela_id) REFERENCES escuela(id)
+);
+
+-- Tabla: umbrales
+CREATE TABLE umbrales (
+    id SERIAL PRIMARY KEY,
+    umbral_bajo FLOAT,
+    umbral_alto FLOAT,
+    sala_id INTEGER NOT NULL,
+    variable_id INTEGER NOT NULL,
+    CONSTRAINT fk_umbrales_sala FOREIGN KEY (sala_id) REFERENCES sala(id),
+    CONSTRAINT fk_umbrales_variable FOREIGN KEY (variable_id) REFERENCES variable_ambiental(id)
 );
