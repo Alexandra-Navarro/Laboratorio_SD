@@ -402,7 +402,23 @@ export default {
 
     checkNotificationPermission() {
       if ('Notification' in window) {
-        this.notificationsEnabled = Notification.permission === 'granted'
+        console.log('Estado actual de notificaciones:', Notification.permission);
+        if (Notification.permission === 'default') {
+          Notification.requestPermission().then(permission => {
+            console.log('Permiso de notificación:', permission);
+            this.notificationsEnabled = permission === 'granted';
+            if (permission === 'granted') {
+              this.showSnackbar('Notificaciones activadas', 'success');
+              // Mostrar una notificación de prueba
+              this.showNotification('Notificaciones activadas', 'El sistema de notificaciones está funcionando correctamente');
+            }
+          });
+        } else {
+          this.notificationsEnabled = Notification.permission === 'granted';
+          console.log('Notificaciones ya configuradas:', this.notificationsEnabled);
+        }
+      } else {
+        console.log('Las notificaciones no están soportadas en este navegador');
       }
     },
 
@@ -453,6 +469,35 @@ export default {
         text,
         color,
         timeout
+      }
+    },
+
+    showNotification(title, body) {
+      console.log('Intentando mostrar notificación:', { title, body, notificationsEnabled: this.notificationsEnabled });
+      if (this.notificationsEnabled && 'Notification' in window) {
+        try {
+          const notification = new Notification(title, {
+            body: body,
+            icon: '/favicon.ico',
+            badge: '/favicon.ico',
+            tag: 'alerta',
+            requireInteraction: true
+          });
+          
+          notification.onclick = function() {
+            window.focus();
+            this.close();
+          };
+          
+          console.log('Notificación creada exitosamente');
+        } catch (error) {
+          console.error('Error al mostrar notificación:', error);
+        }
+      } else {
+        console.log('No se puede mostrar la notificación:', {
+          notificationsEnabled: this.notificationsEnabled,
+          notificationsSupported: 'Notification' in window
+        });
       }
     }
   }

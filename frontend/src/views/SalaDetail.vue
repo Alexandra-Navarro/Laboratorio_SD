@@ -334,13 +334,11 @@
           this.alertasCriticas++
         }
         
-        // Mostrar notificación
-        if ('Notification' in window && Notification.permission === 'granted') {
-          new Notification(`Nueva Alerta - ${alerta.tipo}`, {
-            body: alerta.descripcion,
-            icon: '/favicon.ico'
-          })
-        }
+        // Mostrar notificación usando el método centralizado
+        this.$root.showNotification(
+          `Nueva Alerta - ${alerta.tipo}`,
+          `${alerta.descripcion}\nValor detectado: ${alerta.valor_detectado}`
+        )
       },
       
       actualizarConteoAlertas(alertas) {
