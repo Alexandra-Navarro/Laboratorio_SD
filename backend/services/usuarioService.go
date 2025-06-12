@@ -50,3 +50,19 @@ func (s *UsuarioService) DeleteUsuario(id uint) error {
 	}
 	return nil
 }
+
+func (s *UsuarioService) GetByUsername(username string) (*models.Usuario, error) {
+	var usuario models.Usuario
+	if err := s.DB.Where("username = ?", username).First(&usuario).Error; err != nil {
+		return nil, err
+	}
+	return &usuario, nil
+}
+
+func (s *UsuarioService) GetByEmail(email string) (*models.Usuario, error) {
+	var usuario models.Usuario
+	if err := s.DB.Where("email = ?", email).First(&usuario).Error; err != nil {
+		return nil, err
+	}
+	return &usuario, nil
+}

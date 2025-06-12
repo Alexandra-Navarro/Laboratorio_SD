@@ -10,6 +10,7 @@ import (
 func InitUsuarioRoutes(api *gin.RouterGroup) {
 	usuarioService := services.NewUsuarioService(config.DB)
 	usuarioController := controllers.NewUsuarioController(usuarioService)
+	api.POST("/login", usuarioController.Login)
 
 	usuarios := api.Group("/usuarios")
 	{

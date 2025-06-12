@@ -5,11 +5,16 @@ import Home from '@/views/Home.vue'
 import SalaDetail from '@/views/SalaDetail.vue'
 import AlertasView from '@/views/AlertasView.vue'
 import Dashboard from '@/views/Dashboard.vue'
+import Login from '../views/Login.vue'
 
 const routes = [
-  // Ruta principal
   {
     path: '/',
+    name: 'Login',
+    component: Login
+  },
+  {
+    path: '/home',
     name: 'Home',
     component: Home,
     meta: {
@@ -85,6 +90,24 @@ router.beforeEach((to, from, next) => {
     document.title = `${to.meta.title} - Sistema de Monitoreo`
   }
   
+  next()
+})
+
+// 🔐 Protección de rutas
+router.beforeEach((to, from, next) => {
+  const publicPages = ['/']
+  const authRequired = !publicPages.includes(to.path)
+  const usuario = localStorage.getItem('usuario')
+
+  if (authRequired && !usuario) {
+    return next('/')
+  }
+
+  // Si el usuario está logueado y va a la página de login, redirigir al dashboard
+  if (to.path === '/' && usuario) {
+    return next('/dashboard')
+  }
+
   next()
 })
 

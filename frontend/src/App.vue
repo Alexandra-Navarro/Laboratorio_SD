@@ -1,256 +1,31 @@
 <template>
   <v-app>
-    <!-- Navigation Drawer -->
-    <v-navigation-drawer 
-      v-model="drawer" 
-      app 
-      :width="280"
-      class="elevation-3"
-    >
-      <!-- Header del drawer -->
-      <v-list-item class="px-2 py-4">
-        <v-list-item-avatar>
-          <v-icon size="40" color="primary">mdi-home-analytics</v-icon>
-        </v-list-item-avatar>
-        <v-list-item-content>
-          <v-list-item-title class="text-h6 font-weight-bold">
-            Monitoreo
-          </v-list-item-title>
-          <v-list-item-subtitle>Ambiental</v-list-item-subtitle>
-        </v-list-item-content>
-      </v-list-item>
-
-      <v-divider></v-divider>
-
-      <v-list nav dense>
-        <!-- Dashboard General -->
-        <v-list-item
-          to="/dashboard"
-          link
-          class="mb-2"
-        >
-          <v-list-item-icon>
-            <v-icon>mdi-view-dashboard</v-icon>
-          </v-list-item-icon>
-          <v-list-item-content>
-            <v-list-item-title>Dashboard General</v-list-item-title>
-          </v-list-item-content>
-        </v-list-item>
-
-        <!-- Todas las Alertas -->
-        <v-list-item
-          to="/alertas"
-          link
-          class="mb-2"
-        >
-          <v-list-item-icon>
-            <v-icon>mdi-bell-ring</v-icon>
-          </v-list-item-icon>
-          <v-list-item-content>
-            <v-list-item-title>Todas las Alertas</v-list-item-title>
-          </v-list-item-content>
-          <!-- Badge de alertas críticas globales -->
-          <v-list-item-action v-if="totalAlertasCriticas > 0">
-            <v-chip
-              color="error"
-              text-color="white"
-              small
-              class="ml-2"
-            >
-              {{ totalAlertasCriticas }}
-            </v-chip>
-          </v-list-item-action>
-        </v-list-item>
-
-        <v-divider class="my-2"></v-divider>
-
-        <!-- Grupo de Salas -->
-        <v-list-group
-          :value="true"
-          prepend-icon="mdi-home-city"
-          no-action
-        >
-          <template v-slot:activator="{ props }">
-            <v-list-item v-bind="props">
-              <v-list-item-content>
-                <v-list-item-title class="font-weight-medium">
-                  Salas ({{ salas.length }})
-                </v-list-item-title>
-              </v-list-item-content>
-            </v-list-item>
-          </template>
-
-          <!-- Loading state para salas -->
-          <v-list-item v-if="loading" class="ml-4">
-            <v-list-item-icon>
-              <v-progress-circular
-                indeterminate
-                size="20"
-                color="primary"
-              ></v-progress-circular>
-            </v-list-item-icon>
-            <v-list-item-content>
-              <v-list-item-title class="text-caption">
-                Cargando salas...
-              </v-list-item-title>
-            </v-list-item-content>
-          </v-list-item>
-
-          <!-- Error state para salas -->
-          <v-list-item v-else-if="error" class="ml-4">
-            <v-list-item-icon>
-              <v-icon color="error" size="20">mdi-alert-circle</v-icon>
-            </v-list-item-icon>
-            <v-list-item-content>
-              <v-list-item-title class="text-error text-caption">
-                {{ error }}
-              </v-list-item-title>
-            </v-list-item-content>
-            <v-list-item-action>
-              <v-btn
-                icon
-                small
-                @click="obtenerSalas"
-                :loading="loading"
-              >
-                <v-icon small>mdi-refresh</v-icon>
-              </v-btn>
-            </v-list-item-action>
-          </v-list-item>
-
-          <!-- Lista de salas -->
-          <template v-else>
-            <div v-for="sala in salas" :key="sala.id">
-              <!-- Subgrupo para cada sala -->
-              <v-list-group
-                :value="isCurrentSala(sala.id)"
-                sub-group
-                no-action
-                class="ml-4"
-              >
-                <template v-slot:activator="{ props }">
-                  <v-list-item v-bind="props">
-                    <v-list-item-icon>
-                      <v-icon size="20">{{ sala.icon }}</v-icon>
-                    </v-list-item-icon>
-                    <v-list-item-content>
-                      <v-list-item-title class="text-sm">
-                        {{ sala.nombre }}
-                      </v-list-item-title>
-                    </v-list-item-content>
-                    <!-- Badge de alertas por sala -->
-                    <v-list-item-action v-if="sala.alertasCriticas > 0">
-                      <v-chip
-                        color="error"
-                        text-color="white"
-                        x-small
-                      >
-                        {{ sala.alertasCriticas }}
-                      </v-chip>
-                    </v-list-item-action>
-                  </v-list-item>
-                </template>
-                
-                <!-- Opciones de cada sala -->
-                <v-list-item
-                  :to="sala.path"
-                  link
-                  class="ml-8"
-                  exact
-                >
-                  <v-list-item-icon>
-                    <v-icon size="18">mdi-monitor-dashboard</v-icon>
-                  </v-list-item-icon>
-                  <v-list-item-content>
-                    <v-list-item-title class="text-sm">Dashboard</v-list-item-title>
-                  </v-list-item-content>
-                </v-list-item>
-                
-                <v-list-item
-                  :to="`/salas/${sala.id}/alertas`"
-                  link
-                  class="ml-8"
-                  exact
-                >
-                  <v-list-item-icon>
-                    <v-icon size="18">mdi-bell-alert</v-icon>
-                  </v-list-item-icon>
-                  <v-list-item-content>
-                    <v-list-item-title class="text-sm">Alertas</v-list-item-title>
-                  </v-list-item-content>
-                  <v-list-item-action v-if="sala.alertasCriticas > 0">
-                    <v-chip
-                      color="error"
-                      text-color="white"
-                      x-small
-                    >
-                      {{ sala.alertasCriticas }}
-                    </v-chip>
-                  </v-list-item-action>
-                </v-list-item>
-              </v-list-group>
-            </div>
-          </template>
-        </v-list-group>
-      </v-list>
-
-      <!-- Footer del drawer -->
-      <template v-slot:append>
-        <div class="pa-2">
-          <v-btn
-            block
-            outlined
-            small
-            @click="obtenerSalas"
-            :loading="loading"
+    <!-- Solo mostrar navegación si el usuario está logueado y no está en login -->
+    <template v-if="isLoggedIn && !isLoginPage">
+      <v-navigation-drawer v-model="drawer" app>
+        <v-list>
+          <v-list-item
+            v-for="item in menuItems"
+            :key="item.title"
+            :to="item.path"
+            link
           >
-            <v-icon left small>mdi-refresh</v-icon>
-            Actualizar
-          </v-btn>
-        </div>
-      </template>
-    </v-navigation-drawer>
+            <v-list-item-icon>
+              <v-icon>{{ item.icon }}</v-icon>
+            </v-list-item-icon>
+            <v-list-item-content>
+              <v-list-item-title>{{ item.title }}</v-list-item-title>
+            </v-list-item-content>
+          </v-list-item>
+        </v-list>
+      </v-navigation-drawer>
 
-    <!-- App Bar -->
-    <v-app-bar 
-      app 
-      color="primary" 
-      dark 
-      elevation="4"
-      :class="{ 'blur-background': drawer }"
-    >
-      <v-app-bar-nav-icon 
-        @click="drawer = !drawer"
-        class="mr-2"
-      ></v-app-bar-nav-icon>
-      
-      <v-toolbar-title class="font-weight-bold">
-        {{ getPageTitle() }}
-      </v-toolbar-title>
-
-      <v-spacer></v-spacer>
-
-      <!-- Indicador de conexión -->
-      <v-chip
-        :color="isOnline ? 'success' : 'error'"
-        small
-        class="mr-2"
-      >
-        <v-icon left small>
-          {{ isOnline ? 'mdi-wifi' : 'mdi-wifi-off' }}
-        </v-icon>
-        {{ isOnline ? 'Conectado' : 'Sin conexión' }}
-      </v-chip>
-
-      <!-- Botón de notificaciones -->
-      <v-btn
-        icon
-        @click="requestNotificationPermission"
-        v-if="!notificationsEnabled"
-      >
-        <v-icon>mdi-bell-off</v-icon>
-      </v-btn>
-    </v-app-bar>
+      <v-app-bar app color="primary" dark>
+        <v-app-bar-nav-icon @click="drawer = !drawer"></v-app-bar-nav-icon>
+        <v-toolbar-title>Sistema de Monitoreo Ambiental</v-toolbar-title>
+        <v-btn @click="logout" color="red" variant="tonal">Cerrar sesión</v-btn>
+      </v-app-bar>
+    </template>
 
     <!-- Main Content -->
     <v-main>
@@ -285,6 +60,42 @@
 
 <script>
 import axios from 'axios'
+import { ref, computed } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+
+const router = useRouter()
+const route = useRoute()
+const drawer = ref(true)
+
+const isLoggedIn = computed(() => !!localStorage.getItem('usuario'))
+const isLoginPage = computed(() => route.path === '/')
+
+const menuItems = [
+  {
+    title: 'Dashboard',
+    icon: 'mdi-view-dashboard',
+    path: '/dashboard'
+  },
+  {
+    title: 'Sensores',
+    icon: 'mdi-thermometer',
+    path: '/sensors'
+  },
+  {
+    title: 'Alertas',
+    icon: 'mdi-alert',
+    path: '/alerts'
+  },
+  {
+    title: 'Configuración',
+    icon: 'mdi-cog',
+    path: '/settings'
+  }
+]
+
+const logout = () => {
+  localStorage.removeItem('usuario')
+  router.push('/')
 
 export default {
   name: 'App',

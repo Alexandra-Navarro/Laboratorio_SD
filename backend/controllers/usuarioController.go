@@ -92,3 +92,34 @@ func (uc *UsuarioController) Delete(c *gin.Context) {
 
 	c.JSON(http.StatusNoContent, nil)
 }
+
+func (uc *UsuarioController) Login(c *gin.Context) {
+	var loginData struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+	if err := c.ShouldBindJSON(&loginData); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Datos de login inválidos"})
+		return
+	}
+
+	usuario, err := uc.UsuarioService.GetByEmail(loginData.Email)
+	if err != nil || usuario == nil || usuario.Password != loginData.Password {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Credenciales inválidas"})
+		return
+	}
+
+	// Si tienes JWT, descomenta lo siguiente y asegúrate de tener config.GenerateJWT
+	// token, err := config.GenerateJWT(usuario.Rut)
+	// if err != nil {
+	//     c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo generar el token"})
+	//     return
+	// }
+
+	// c.JSON(http.StatusOK, gin.H{"token": token})
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Login exitoso",
+		"usuario": usuario,
+	})
+}

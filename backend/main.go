@@ -24,7 +24,7 @@ func main() {
 
 	// Configuración de CORS
 	router.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:3000"},
+		AllowOrigins:     []string{"http://localhost:3000", "http://localhost", "http://localhost:80"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization", "Accept"},
 		ExposeHeaders:    []string{"Content-Length"},
@@ -33,6 +33,10 @@ func main() {
 	}))
 	// Configurar las rutas
 	routes.InitAllRoutes(router) // Usando el nombre correcto de la función
+
+	router.OPTIONS("/*cors", func(c *gin.Context) {
+		c.Status(204)
+	})
 
 	// Leer el puerto desde la variable de entorno o usar el valor por defecto
 	port := os.Getenv("APP_PORT")
