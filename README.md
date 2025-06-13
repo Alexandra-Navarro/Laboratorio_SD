@@ -78,6 +78,8 @@ docker-compose up --build -d
 - **Usuario**: admin
 - **Contraseña**: admin123
 
+> **Nota**: Una vez dentro de Grafana, navega a Dashboards > Monitoreo Ambiental - Variables Ambientales para acceder al dashboard principal del sistema.
+
 ---
 
 ## Simulación de Sensores
