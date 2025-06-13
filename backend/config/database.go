@@ -24,13 +24,13 @@ func loadEnvVariables() error {
 
 // getDBConfig obtiene las configuraciones de la base de datos desde las variables de entorno
 func getDBConfig() (string, error) {
-	dbHost := os.Getenv("DB_HOST")
-	dbUser := os.Getenv("DB_USER")
-	dbPassword := os.Getenv("DB_PASSWORD")
-	dbName := os.Getenv("DB_NAME")
-	dbPort := os.Getenv("DB_PORT")
-	dbSslmode := os.Getenv("DB_SSLMODE")
-	dbTimezone := os.Getenv("DB_TIMEZONE")
+	dbHost := os.Getenv("POSTGRES_HOST")
+	dbUser := os.Getenv("POSTGRES_USER")
+	dbPassword := os.Getenv("POSTGRES_PASSWORD")
+	dbName := os.Getenv("POSTGRES_DB")
+	dbPort := os.Getenv("POSTGRES_PORT")
+	dbSslmode := os.Getenv("POSTGRES_SSLMODE")
+	dbTimezone := os.Getenv("POSTGRES_TIMEZONE")
 
 	// Verificamos si alguna variable de entorno esencial está vacía
 	if dbHost == "" || dbUser == "" || dbPassword == "" || dbName == "" || dbPort == "" || dbSslmode == "" || dbTimezone == "" {

@@ -12,10 +12,6 @@
                             Monitoreo en tiempo real de las condiciones ambientales en salas educativas
                         </p>
                         <div class="hero-actions">
-                            <v-btn color="primary" large to="/dashboard" class="mr-4">
-                                <v-icon left>mdi-view-dashboard</v-icon>
-                                Ver Dashboard
-                            </v-btn>
                             <v-btn outlined large to="/alertas">
                                 <v-icon left>mdi-bell-ring</v-icon>
                                 Ver Alertas
@@ -37,7 +33,7 @@
                     </v-row>
 
                     <v-row>
-                        <v-col cols="12" md="4" class="mb-4">
+                        <v-col cols="12" md="6" class="mb-4">
                             <v-card class="feature-card h-100">
                                 <v-card-text class="text-center pa-6">
                                     <div class="feature-icon mb-4">
@@ -52,7 +48,7 @@
                             </v-card>
                         </v-col>
 
-                        <v-col cols="12" md="4" class="mb-4">
+                        <v-col cols="12" md="6" class="mb-4">
                             <v-card class="feature-card h-100">
                                 <v-card-text class="text-center pa-6">
                                     <div class="feature-icon mb-4">
@@ -62,20 +58,6 @@
                                     <p class="feature-description">
                                         Sistema de alertas automático que notifica cuando las condiciones salen de los
                                         parámetros normales
-                                    </p>
-                                </v-card-text>
-                            </v-card>
-                        </v-col>
-
-                        <v-col cols="12" md="4" class="mb-4">
-                            <v-card class="feature-card h-100">
-                                <v-card-text class="text-center pa-6">
-                                    <div class="feature-icon mb-4">
-                                        <v-icon size="64" color="success">mdi-chart-line</v-icon>
-                                    </div>
-                                    <h3 class="feature-title mb-3">Análisis de Datos</h3>
-                                    <p class="feature-description">
-                                        Visualización de tendencias y patrones para la toma de decisiones informadas
                                     </p>
                                 </v-card-text>
                             </v-card>
@@ -125,11 +107,23 @@
                                     <div class="sala-metrics">
                                         <div class="metric-item">
                                             <v-icon small class="mr-1">mdi-thermometer</v-icon>
-                                            <span class="text-caption">{{ getRandomMetric(18, 25) }}°C</span>
+                                            <span class="text-caption">{{ sala.metricas?.temperatura || '--' }}°C</span>
                                         </div>
                                         <div class="metric-item">
                                             <v-icon small class="mr-1">mdi-water-percent</v-icon>
-                                            <span class="text-caption">{{ getRandomMetric(40, 60) }}%</span>
+                                            <span class="text-caption">{{ sala.metricas?.humedad || '--' }}%</span>
+                                        </div>
+                                        <div class="metric-item">
+                                            <v-icon small class="mr-1">mdi-molecule-co2</v-icon>
+                                            <span class="text-caption">{{ sala.metricas?.co2 || '--' }} ppm</span>
+                                        </div>
+                                        <div class="metric-item">
+                                            <v-icon small class="mr-1">mdi-volume-high</v-icon>
+                                            <span class="text-caption">{{ sala.metricas?.ruido || '--' }} dB</span>
+                                        </div>
+                                        <div class="metric-item">
+                                            <v-icon small class="mr-1">mdi-white-balance-sunny</v-icon>
+                                            <span class="text-caption">{{ sala.metricas?.iluminacion || '--' }} lux</span>
                                         </div>
                                     </div>
                                 </v-card-text>
@@ -217,7 +211,14 @@ export default {
                                 icon: this.obtenerIconoPorEscuela(sala.escuela_id),
                                 path: `/salas/${sala.id}`,
                                 alertasCriticas: 0,
-                                status: 'normal'
+                                status: 'normal',
+                                metricas: {
+                                    temperatura: '--',
+                                    humedad: '--',
+                                    co2: '--',
+                                    ruido: '--',
+                                    iluminacion: '--'
+                                }
                             }
 
                             // Obtener alertas críticas
@@ -227,6 +228,59 @@ export default {
                                 salaData.status = salaData.alertasCriticas > 0 ? 'critical' : 'normal'
                             } catch (error) {
                                 console.warn(`No se pudieron cargar alertas para sala ${sala.id}`)
+                            }
+
+                            // Obtener mediciones recientes
+                            try {
+                                // 1. Obtener sensores de la sala
+                                const sensoresRes = await axios.get(`/api/sensores/sala/${sala.id}`);
+                                let sensores = sensoresRes.data;
+                                if (!Array.isArray(sensores)) {
+                                    if (Array.isArray(sensores.sensores)) {
+                                        sensores = sensores.sensores;
+                                    } else {
+                                        console.warn('La respuesta de sensores no es un array:', sensores);
+                                        sensores = [];
+                                    }
+                                }
+                                // Diccionario sensor_id -> variable_id
+                                const sensorToVariable = {};
+                                sensores.forEach(sensor => {
+                                    sensorToVariable[sensor.id] = sensor.variable_id;
+                                });
+
+                                // 2. Obtener mediciones de la sala
+                                const medicionesRes = await axios.get(`/api/mediciones/sala/${sala.id}`);
+                                let mediciones = medicionesRes.data;
+                                if (!Array.isArray(mediciones)) {
+                                    if (Array.isArray(mediciones.mediciones)) {
+                                        mediciones = mediciones.mediciones;
+                                    } else {
+                                        console.warn('La respuesta de mediciones no es un array:', mediciones);
+                                        mediciones = [];
+                                    }
+                                }
+
+                                // 3. Obtener la medición más reciente para cada variable
+                                const latestByVariable = {};
+                                mediciones.forEach(med => {
+                                    const variableId = sensorToVariable[med.sensor_id];
+                                    if (!variableId) return;
+                                    if (!latestByVariable[variableId] || new Date(med.fecha) > new Date(latestByVariable[variableId].fecha)) {
+                                        latestByVariable[variableId] = med;
+                                    }
+                                });
+
+                                // 4. Mapear variable_id a nombre de variable
+                                salaData.metricas = {
+                                    temperatura: latestByVariable[1]?.valor?.toFixed(1) ?? '--',
+                                    humedad: latestByVariable[2]?.valor?.toFixed(1) ?? '--',
+                                    co2: latestByVariable[3]?.valor?.toFixed(0) ?? '--',
+                                    ruido: latestByVariable[4]?.valor?.toFixed(1) ?? '--',
+                                    iluminacion: latestByVariable[5]?.valor?.toFixed(0) ?? '--'
+                                };
+                            } catch (error) {
+                                console.warn(`No se pudieron cargar mediciones para sala ${sala.id}`)
                             }
 
                             return salaData
@@ -304,7 +358,7 @@ export default {
 }
 
 .hero-section {
-    background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+    background: linear-gradient(135deg, #00b4db 0%, #0083b0 100%);
     color: white;
     padding: 80px 0;
     text-align: center;
@@ -349,7 +403,7 @@ export default {
     font-size: 2.5rem;
     font-weight: bold;
     margin-bottom: 8px;
-    color: #1976d2;
+    color: #00b4db;
 }
 
 .stat-label {
@@ -398,7 +452,7 @@ export default {
 .feature-card:hover {
     transform: translateY(-4px);
     box-shadow: 0 12px 30px rgba(0, 0, 0, 0.1);
-    border-color: #1976d2;
+    border-color: #00b4db;
 }
 
 .feature-icon {
@@ -427,7 +481,7 @@ export default {
 .sala-card:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
-    border-color: #1976d2;
+    border-color: #00b4db;
 }
 
 .sala-name {

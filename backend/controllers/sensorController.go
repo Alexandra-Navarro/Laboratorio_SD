@@ -97,3 +97,20 @@ func (sc *SensorController) Delete(c *gin.Context) {
 
 	c.JSON(http.StatusNoContent, nil)
 }
+
+func (sc *SensorController) GetSensorsBySala(c *gin.Context) {
+	salaID := c.Param("sala_id")
+	salaIDInt, err := strconv.Atoi(salaID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID de sala inválido"})
+		return
+	}
+
+	sensors, err := sc.SensorService.GetSensorsBySala(salaIDInt)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, sensors)
+}

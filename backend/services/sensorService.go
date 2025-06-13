@@ -50,3 +50,11 @@ func (s *SensorService) DeleteSensor(id uint) error {
 	}
 	return nil
 }
+
+func (s *SensorService) GetSensorsBySala(salaID int) ([]models.Sensor, error) {
+	var sensors []models.Sensor
+	if err := s.DB.Where("sala_id = ?", salaID).Find(&sensors).Error; err != nil {
+		return nil, err
+	}
+	return sensors, nil
+}

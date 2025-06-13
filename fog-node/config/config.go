@@ -16,10 +16,10 @@ type Config struct {
 
 // GetConfig retorna la configuración de la aplicación
 func GetConfig() *Config {
-	host := os.Getenv("DB_HOST")
-	user := os.Getenv("DB_USER")
-	password := os.Getenv("DB_PASSWORD")
-	dbname := os.Getenv("DB_NAME")
+	host := os.Getenv("POSTGRES_HOST")
+	user := os.Getenv("POSTGRES_USER")
+	password := os.Getenv("POSTGRES_PASSWORD")
+	dbname := os.Getenv("POSTGRES_DB")
 	mqttBroker := os.Getenv("MQTT_BROKER")
 
 	return &Config{

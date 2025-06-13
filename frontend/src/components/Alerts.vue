@@ -125,7 +125,7 @@ export default {
   methods: {
     iniciarPolling() {
       this.cargarAlertas();
-      this.pollingInterval = setInterval(this.cargarAlertas, 5000);
+      this.pollingInterval = setInterval(this.cargarAlertas, 900000); // 15 minutos = 900000 ms
     },
     
     detenerPolling() {
@@ -149,17 +149,15 @@ export default {
         
         const response = await axios.get(url);
         const nuevasAlertas = response.data;
-        console.log('Alertas cargadas:', nuevasAlertas);
+        // Ordenar por fecha descendente (más nueva primero)
+        nuevasAlertas.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
 
         // Verificar nuevas alertas para notificaciones
         if (nuevasAlertas.length > 0) {
           const alertaMasReciente = nuevasAlertas[0];
-          console.log('Última alerta notificada:', this.ultimaAlertaNotificada);
-          console.log('Alerta más reciente:', alertaMasReciente.id);
 
           if (this.ultimaAlertaNotificada === null) {
             this.ultimaAlertaNotificada = alertaMasReciente.id;
-            console.log('Primera carga de alertas, no se muestran notificaciones');
           } else if (alertaMasReciente.id !== this.ultimaAlertaNotificada) {
             const nuevas = [];
             for (const alerta of nuevasAlertas) {
@@ -167,11 +165,9 @@ export default {
               nuevas.push(alerta);
             }
             
-            console.log('Nuevas alertas detectadas:', nuevas);
             
             // Emitir evento para nuevas alertas y mostrar notificación
             nuevas.reverse().forEach(alerta => {
-              console.log('Procesando nueva alerta:', alerta);
               this.$emit('nueva-alerta', alerta);
               
               // Asegurarse de que el método showNotification esté disponible
@@ -190,6 +186,7 @@ export default {
         }
 
         this.alertasOriginales = nuevasAlertas;
+        this.$emit('alertas-todas-cargadas', this.alertasOriginales);
       } catch (error) {
         console.error('Error al cargar alertas:', error);
         this.error = 'Error al cargar las alertas. Verifique su conexión.';
@@ -210,7 +207,7 @@ export default {
     
     formatTipo(tipo) {
       const tipos = {
-        'informativo': 'Informativo',
+        //'informativo': 'Informativo',
         'preventivo': 'Preventivo',
         'critico': 'Crítico'
       };
@@ -273,7 +270,7 @@ export default {
 }
 
 .retry-button:hover {
-  background: #1976d2;
+  background: #00b4db;
 }
 
 .empty-container {
@@ -396,5 +393,10 @@ export default {
     flex-direction: column;
     gap: 8px;
   }
+}
+
+.alert-info {
+    background: #00b4db;
+    color: white;
 }
 </style>

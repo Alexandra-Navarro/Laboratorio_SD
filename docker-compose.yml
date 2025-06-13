@@ -11,17 +11,17 @@ services:
       - ./mosquitto/data:/mosquitto/data
       - ./mosquitto/log:/mosquitto/log
     environment:
-      - MQTT_USER=${MQTT_USER:-monitoring}
-      - MQTT_PASSWORD=${MQTT_PASSWORD:-monitoring123}
+      - MQTT_USER=${MQTT_USER}
+      - MQTT_PASSWORD=${MQTT_PASSWORD}
     networks:
       - monitoring-network
 
   postgres:
     image: postgres:14-alpine
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      POSTGRES_DB: ${POSTGRES_DB:-MonitoreoDB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     ports:
       - "5432:5432"
     volumes:
@@ -29,7 +29,7 @@ services:
       - ./CreateTables.sql:/docker-entrypoint-initdb.d/01_create_tables.sql
       - ./InsertTable.sql:/docker-entrypoint-initdb.d/02_insert_data.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -43,14 +43,17 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - DB_HOST=postgres
-      - DB_USER=${POSTGRES_USER:-postgres}
-      - DB_PASSWORD=${POSTGRES_PASSWORD:-postgres}
-      - DB_NAME=${POSTGRES_DB:-MonitoreoDB}
+      - POSTGRES_HOST=${POSTGRES_HOST}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_PORT=${POSTGRES_PORT}
+      - POSTGRES_SSLMODE=${POSTGRES_SSLMODE}
+      - POSTGRES_TIMEZONE=${POSTGRES_TIMEZONE}
       - MQTT_BROKER=mqtt-broker
       - MQTT_PORT=1883
-      - MQTT_USER=${MQTT_USER:-monitoring}
-      - MQTT_PASSWORD=${MQTT_PASSWORD:-monitoring123}
+      - MQTT_USER=${MQTT_USER}
+      - MQTT_PASSWORD=${MQTT_PASSWORD}
       - SERVER_PORT=8080
       - SERVER_HOST=0.0.0.0
     depends_on:
@@ -79,8 +82,14 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin123}
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
+      - POSTGRES_HOST=${POSTGRES_HOST}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_PORT=${POSTGRES_PORT}
+      - POSTGRES_SSLMODE=${POSTGRES_SSLMODE}
       - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
     volumes:
       - grafana_data:/var/lib/grafana
@@ -99,8 +108,8 @@ services:
     environment:
       - MQTT_BROKER=mqtt-broker
       - MQTT_PORT=1883
-      - MQTT_USER=${MQTT_USER:-monitoring}
-      - MQTT_PASSWORD=${MQTT_PASSWORD:-monitoring123}
+      - MQTT_USER=${MQTT_USER}
+      - MQTT_PASSWORD=${MQTT_PASSWORD}
       - SEND_INTERVAL=5000
     depends_on:
       - mqtt-broker
@@ -112,14 +121,13 @@ services:
       context: ./fog-node
       dockerfile: Dockerfile
     environment:
-      - DB_HOST=${POSTGRES_HOST:-postgres}
-      - DB_USER=${POSTGRES_USER:-postgres}
-      - DB_PASSWORD=${POSTGRES_PASSWORD:-postgres}
-      - DB_NAME=${POSTGRES_DB:-MonitoreoDB}
+      - POSTGRES_HOST=${POSTGRES_HOST}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
       - MQTT_BROKER=tcp://mqtt-broker:1883
       - MQTT_PORT=1883
-      - MQTT_USER=${MQTT_USER:-monitoring}
-      - MQTT_PASSWORD=${MQTT_PASSWORD:-monitoring123}
+      - MQTT_USER=${MQTT_USER}
     depends_on:
       - mqtt-broker
       - postgres

@@ -30,12 +30,6 @@ func (s *MedicionService) CreateMedicion(medicion *models.Medicion) error {
 	if err := s.DB.Create(medicion).Error; err != nil {
 		return err
 	}
-
-	// Verificar si la medición supera algún umbral
-	if err := s.alertaService.VerificarUmbrales(medicion); err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -81,7 +75,9 @@ func (s *MedicionService) DeleteMedicion(id uint) error {
 // GetMedicionesBySala obtiene las mediciones de una sala específica
 func (s *MedicionService) GetMedicionesBySala(salaID int) ([]models.Medicion, error) {
 	var mediciones []models.Medicion
-	if err := s.DB.Where("sala_id = ?", salaID).Find(&mediciones).Error; err != nil {
+	if err := s.DB.Joins("JOIN sensor ON medicion.sensor_id = sensor.id").
+		Where("sensor.sala_id = ?", salaID).
+		Find(&mediciones).Error; err != nil {
 		return nil, err
 	}
 	return mediciones, nil

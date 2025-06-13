@@ -4,7 +4,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import Home from '@/views/Home.vue'
 import SalaDetail from '@/views/SalaDetail.vue'
 import AlertasView from '@/views/AlertasView.vue'
-import Dashboard from '@/views/Dashboard.vue'
+//import Dashboard from '@/views/Dashboard.vue'
 import Login from '../views/Login.vue'
 
 const routes = [
@@ -21,18 +21,14 @@ const routes = [
       title: 'Sistema de Monitoreo Ambiental'
     }
   },
-  
-  // Dashboard general
-  {
+  /*{
     path: '/dashboard',
     name: 'Dashboard',
     component: Dashboard,
     meta: {
       title: 'Dashboard General'
     }
-  },
-  
-  // Detalle de sala específica
+  },*/
   {
     path: '/salas/:id',
     name: 'SalaDetail',
@@ -42,8 +38,6 @@ const routes = [
       title: 'Detalle de Sala'
     }
   },
-  
-  // Alertas de una sala específica
   {
     path: '/salas/:id/alertas',
     name: 'SalaAlertas',
@@ -53,8 +47,6 @@ const routes = [
       title: 'Alertas de Sala'
     }
   },
-  
-  // Todas las alertas del sistema
   {
     path: '/alertas',
     name: 'TodasAlertas',
@@ -64,10 +56,9 @@ const routes = [
     }
   },
   
-  // Redirigir rutas no encontradas al home
   {
     path: '/:pathMatch(.*)*',
-    redirect: '/'
+    redirect: '/home'
   }
 ]
 
@@ -83,18 +74,14 @@ const router = createRouter({
   }
 })
 
-// Navigation guard para actualizar el título de la página
+// Navigation guard para manejar títulos y autenticación
 router.beforeEach((to, from, next) => {
   // Actualizar título de la página
   if (to.meta.title) {
     document.title = `${to.meta.title} - Sistema de Monitoreo`
   }
-  
-  next()
-})
 
-// 🔐 Protección de rutas
-router.beforeEach((to, from, next) => {
+  // Lógica de autenticación
   const publicPages = ['/']
   const authRequired = !publicPages.includes(to.path)
   const usuario = localStorage.getItem('usuario')
@@ -105,7 +92,7 @@ router.beforeEach((to, from, next) => {
 
   // Si el usuario está logueado y va a la página de login, redirigir al dashboard
   if (to.path === '/' && usuario) {
-    return next('/dashboard')
+    return next('/home')
   }
 
   next()

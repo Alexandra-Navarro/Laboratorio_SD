@@ -23,6 +23,8 @@
               <v-select
                 v-model="filtroTipo"
                 :items="tiposAlerta"
+                item-title="text"
+                item-value="value"
                 label="Filtrar por tipo"
                 clearable
                 dense
@@ -31,7 +33,7 @@
                 style="min-width: 150px"
               ></v-select>
               
-              <!-- Filtro por fecha -->
+              <!-- Filtro por fecha 
               <v-menu
                 v-model="menuFecha"
                 :close-on-content-click="false"
@@ -57,7 +59,7 @@
                   v-model="filtroFecha"
                   @input="menuFecha = false"
                 ></v-date-picker>
-              </v-menu>
+              </v-menu>-->
               
               <!-- Botón de actualizar -->
               <v-btn
@@ -76,8 +78,8 @@
 
     <!-- Estadísticas rápidas -->
     <div class="stats-section" v-if="estadisticas">
-      <v-row>
-        <v-col cols="12" sm="6" md="3">
+      <v-row justify="center">
+        <v-col cols="12" sm="6" md="4">
           <v-card class="stat-card stat-total">
             <v-card-text class="text-center">
               <div class="stat-number">{{ estadisticas.total }}</div>
@@ -85,7 +87,7 @@
             </v-card-text>
           </v-card>
         </v-col>
-        <v-col cols="12" sm="6" md="3">
+        <v-col cols="12" sm="6" md="4">
           <v-card class="stat-card stat-criticas">
             <v-card-text class="text-center">
               <div class="stat-number">{{ estadisticas.criticas }}</div>
@@ -93,7 +95,7 @@
             </v-card-text>
           </v-card>
         </v-col>
-        <v-col cols="12" sm="6" md="3">
+        <v-col cols="12" sm="6" md="4">
           <v-card class="stat-card stat-preventivas">
             <v-card-text class="text-center">
               <div class="stat-number">{{ estadisticas.preventivas }}</div>
@@ -111,7 +113,7 @@
         :filtro-tipo="filtroTipo"
         :filtro-fecha="filtroFecha"
         @nueva-alerta="manejarNuevaAlerta"
-        @alertas-cargadas="actualizarEstadisticas"
+        @alertas-todas-cargadas="actualizarEstadisticas"
       />
     </div>
   </div>
@@ -144,6 +146,7 @@ export default {
         criticas: 0,
         preventivas: 0,
       },
+      todasAlertas: [],
       tiposAlerta: [
         { text: 'Crítico', value: 'critico' },
         { text: 'Preventivo', value: 'preventivo' },
@@ -197,15 +200,19 @@ export default {
       this.estadisticas[alerta.tipo]++
     },
     
-    actualizarEstadisticas(alertas) {
+    actualizarEstadisticas(alertasGlobales) {
+      // Guardar todas las alertas globales
+      this.todasAlertas = alertasGlobales;
       this.estadisticas = {
-        total: alertas.length,
-        criticas: alertas.filter(a => a.tipo === 'critico').length,
-        preventivas: alertas.filter(a => a.tipo === 'preventivo').length,
+        total: this.todasAlertas.length,
+        criticas: this.todasAlertas.filter(a => a.tipo === 'critico').length,
+        preventivas: this.todasAlertas.filter(a => a.tipo === 'preventivo').length,
       }
     },
     
     refrescarAlertas() {
+      this.filtroTipo = null;
+      //this.filtroFecha = null;
       // El componente AlertsComponent maneja su propia actualización
       // Este método puede ser usado para forzar una actualización
       this.$refs.alertsComponent?.cargarAlertas()
@@ -221,7 +228,7 @@ export default {
 }
 
 .view-header {
-  background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+  background: linear-gradient(135deg, #00b4db 0%, #0083b0 100%);
   color: white;
   padding: 24px 0;
   margin-bottom: 24px;
@@ -283,7 +290,7 @@ export default {
 }
 
 .stat-total .stat-number {
-  color: #1976d2;
+  color: #00b4db;
 }
 
 .stat-criticas .stat-number {
@@ -293,8 +300,6 @@ export default {
 .stat-preventivas .stat-number {
   color: #ff9800;
 }
-
-
 
 .alerts-content {
   max-width: 1200px;

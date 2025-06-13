@@ -1,6 +1,7 @@
 # Archivos de entorno y configuración local
 .env
 *.env
+!.env.example
 config.local.js
 config.local.json
 

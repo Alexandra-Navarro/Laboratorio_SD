@@ -70,6 +70,8 @@ CREATE TABLE umbrales (
     id SERIAL PRIMARY KEY,
     umbral_bajo FLOAT,
     umbral_alto FLOAT,
+    umbral_bajo_prev FLOAT,
+    umbral_alto_prev FLOAT,
     sala_id INTEGER NOT NULL,
     variable_id INTEGER NOT NULL,
     CONSTRAINT fk_umbrales_sala FOREIGN KEY (sala_id) REFERENCES sala(id),

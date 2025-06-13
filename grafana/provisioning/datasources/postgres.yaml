@@ -4,12 +4,14 @@ datasources:
   - name: PostgreSQL
     type: postgres
     access: proxy
-    url: postgres:5432
-    user: ${POSTGRES_USER:-postgres}
+    isDefault: true
+    uid: postgres
+    url: ${POSTGRES_HOST}:${POSTGRES_PORT}
+    database: ${POSTGRES_DB}
+    user: ${POSTGRES_USER}
     secureJsonData:
-      password: ${POSTGRES_PASSWORD:-postgres}
+      password: ${POSTGRES_PASSWORD}
     jsonData:
-      database: ${POSTGRES_DB:-MonitoreoDB}
-      sslmode: disable
-    editable: true
-    isDefault: true 
+      sslmode: ${POSTGRES_SSLMODE}
+      postgresVersion: 1400
+      timescaledb: false

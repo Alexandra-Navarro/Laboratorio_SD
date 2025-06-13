@@ -18,5 +18,6 @@ func InitSensorRoutes(api *gin.RouterGroup) {
 		sensores.GET("/", sensorController.GetAll)
 		sensores.PUT("/:id", sensorController.Update)
 		sensores.DELETE("/:id", sensorController.Delete)
+		sensores.GET("/sala/:sala_id", sensorController.GetSensorsBySala)
 	}
 }
