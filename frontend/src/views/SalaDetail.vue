@@ -542,7 +542,7 @@ export default {
 
       // Mostrar notificación usando el método centralizado
       this.$root.showNotification(
-        `Nueva Alerta - ${alerta.tipo}`,
+        `Nueva Alerta en ${this.salaInfo.nombre} - ${alerta.tipo}`,
         `${alerta.descripcion}\nValor detectado: ${alerta.valor_detectado}`
       )
     },

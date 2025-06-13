@@ -277,7 +277,7 @@ func (s *SensorService) checkThresholds(tx *sql.Tx, salaID int, data models.Sens
 	}
 	if float64(data.CO2) < co2UmbralBajo {
 		_, err = tx.Exec("INSERT INTO alerta (tipo, descripcion, valor_detectado, umbral, sala_id) VALUES ($1, $2, $3, $4, $5)",
-			"informativo", "CO2 por debajo del umbral", data.CO2, "bajo", salaID)
+			"critico", "CO2 por debajo del umbral", data.CO2, "bajo", salaID)
 		if err != nil {
 			return fmt.Errorf("error al crear alerta de CO2 bajo: %v", err)
 		}
@@ -303,7 +303,7 @@ func (s *SensorService) checkThresholds(tx *sql.Tx, salaID int, data models.Sens
 	}
 	if float64(data.Noise) < noiseUmbralBajo {
 		_, err = tx.Exec("INSERT INTO alerta (tipo, descripcion, valor_detectado, umbral, sala_id) VALUES ($1, $2, $3, $4, $5)",
-			"informativo", "Ruido por debajo del umbral", data.Noise, "bajo", salaID)
+			"critico", "Ruido por debajo del umbral", data.Noise, "bajo", salaID)
 		if err != nil {
 			return fmt.Errorf("error al crear alerta de ruido bajo: %v", err)
 		}
@@ -329,7 +329,7 @@ func (s *SensorService) checkThresholds(tx *sql.Tx, salaID int, data models.Sens
 	}
 	if float64(data.Light) < lightUmbralBajo {
 		_, err = tx.Exec("INSERT INTO alerta (tipo, descripcion, valor_detectado, umbral, sala_id) VALUES ($1, $2, $3, $4, $5)",
-			"informativo", "Iluminación por debajo del umbral", data.Light, "bajo", salaID)
+			"critico", "Iluminación por debajo del umbral", data.Light, "bajo", salaID)
 		if err != nil {
 			return fmt.Errorf("error al crear alerta de iluminación baja: %v", err)
 		}

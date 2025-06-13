@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"github.com/Alexandra-Navarro/Laboratorio_SD/backend/models"
-	"github.com/joho/godotenv"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -14,13 +13,13 @@ import (
 var DB *gorm.DB
 
 // loadEnvVariables carga las variables de entorno desde el archivo .env
-func loadEnvVariables() error {
+/*func loadEnvVariables() error {
 	err := godotenv.Load()
 	if err != nil {
 		return fmt.Errorf("error cargando archivo .env: %v", err)
 	}
 	return nil
-}
+}*/
 
 // getDBConfig obtiene las configuraciones de la base de datos desde las variables de entorno
 func getDBConfig() (string, error) {
@@ -80,9 +79,9 @@ func migrateDatabase() error {
 // ConnectDB es la función principal que conecta a la base de datos y realiza la migración
 func ConnectDB() {
 	// Cargar variables de entorno
-	if err := loadEnvVariables(); err != nil {
+	/*if err := loadEnvVariables(); err != nil {
 		log.Fatal(err)
-	}
+	}*/
 
 	// Obtener configuración de la base de datos
 	dsn, err := getDBConfig()

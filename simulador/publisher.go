@@ -97,8 +97,8 @@ func main() {
 	}
 	log.Printf("Connected to MQTT broker at %s:%s", broker, port)
 
-	log.Println("Esperando 1 minuto para asegurar que el subscriber esté conectado...")
-	time.Sleep(1 * time.Minute)
+	log.Println("Esperando 30 segundos para asegurar que el subscriber esté conectado...")
+	time.Sleep(30 * time.Second)
 
 	for i := 0; i < maxMediciones; i++ {
 		for _, roomID := range rooms {

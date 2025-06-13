@@ -17,6 +17,10 @@
       <div class="empty-icon">🔔</div>
       <h3>No hay alertas</h3>
       <p>No se han registrado alertas para esta sala.</p>
+      <!-- Debug info -->
+      <div style="font-size: 12px; color: #999; margin-top: 20px;">
+        Debug: {{ alertasOriginales.length }} alertas originales, {{ alertas.length }} alertas filtradas
+      </div>
     </div>
     
     <!-- Alerts list -->
@@ -59,6 +63,18 @@ export default {
     limit: {
       type: Number,
       default: null
+    },
+    salaNombre: {
+      type: String,
+      default: ''
+    },
+    salas: {
+      type: Array,
+      default: () => []
+    },
+    salasCargadas: {
+      type: Boolean,
+      default: false
     }
   },
   data() {
@@ -68,16 +84,56 @@ export default {
       loading: false,
       error: null,
       pollingInterval: null,
-      ultimaAlertaNotificada: null
+      ultimaAlertaNotificada: null,
+      salasInternas: [], // Para guardar las salas si las tenemos que cargar internamente
+      componentId: Math.random().toString(36).substr(2, 9) // ID único para debug
     };
   },
   computed: {
+    salasDisponibles() {
+      // Priorizar las salas que vienen como prop
+      if (this.salas && this.salas.length > 0) {
+        return this.salas;
+      }
+      // Usar salas internas si las hemos cargado
+      return this.salasInternas;
+    },
+    salasNombres() {
+      const salasAUsar = this.salasDisponibles;
+      
+      if (!salasAUsar || salasAUsar.length === 0) {
+        console.log('Alerts: no hay salas disponibles aún');
+        return {};
+      }
+
+      const dic = {};
+      salasAUsar.forEach(s => {
+        if (s && s.id && s.nombre) {
+          dic[s.id] = s.nombre;
+        }
+      });
+
+      console.log('Alerts: salasNombres generado:', {
+        salasAUsar,
+        diccionario: dic
+      });
+
+      return dic;
+    },
     alertasFiltradas() {
+      console.log(`Alerts[${this.componentId}]: Calculando alertas filtradas`, {
+        alertasOriginales: this.alertasOriginales.length,
+        filtroTipo: this.filtroTipo,
+        filtroFecha: this.filtroFecha,
+        limit: this.limit
+      });
+      
       let filtradas = [...this.alertasOriginales];
       
       // Filtrar por tipo
       if (this.filtroTipo) {
         filtradas = filtradas.filter(alerta => alerta.tipo === this.filtroTipo);
+        console.log(`Alerts[${this.componentId}]: Después de filtrar por tipo: ${filtradas.length}`);
       }
       
       // Filtrar por fecha
@@ -87,13 +143,16 @@ export default {
           const fechaAlerta = new Date(alerta.fecha).toDateString();
           return fechaAlerta === fechaFiltro;
         });
+        console.log(`Alerts[${this.componentId}]: Después de filtrar por fecha: ${filtradas.length}`);
       }
       
       // Aplicar límite si se especifica
       if (this.limit && this.limit > 0) {
         filtradas = filtradas.slice(0, this.limit);
+        console.log(`Alerts[${this.componentId}]: Después de aplicar límite: ${filtradas.length}`);
       }
       
+      console.log(`Alerts[${this.componentId}]: Alertas filtradas finales: ${filtradas.length}`);
       return filtradas;
     }
   },
@@ -111,21 +170,73 @@ export default {
     alertasFiltradas: {
       immediate: true,
       handler(nuevasAlertas) {
+        console.log(`Alerts[${this.componentId}]: Watcher alertasFiltradas activado`, {
+          nuevasAlertas: nuevasAlertas.length,
+          alertasActuales: this.alertas.length
+        });
         this.alertas = nuevasAlertas;
         this.$emit('alertas-cargadas', nuevasAlertas);
+      }
+    },
+    // Nuevo watcher: cuando cambien las salas, verificar notificaciones pendientes
+    salas: {
+      deep: true,
+      handler(nuevasSalas) {
+        console.log('Salas cambiaron en Alerts:', nuevasSalas);
+        // Las salas han cambiado, el diccionario se actualizará automáticamente
       }
     }
   },
   mounted() {
+    console.log(`Alerts[${this.componentId}] mounted con props:`, {
+      salaId: this.salaId,
+      salaNombre: this.salaNombre,
+      salas: this.salas,
+      salasLength: this.salas ? this.salas.length : 'undefined',
+      salasCargadas: this.salasCargadas
+    });
+    
+    // Debug adicional: verificar estado inicial
+    console.log(`Alerts[${this.componentId}] estado inicial:`, {
+      alertas: this.alertas.length,
+      alertasOriginales: this.alertasOriginales.length,
+      loading: this.loading,
+      error: this.error
+    });
+    
     this.iniciarPolling();
   },
   beforeUnmount() {
     this.detenerPolling();
   },
   methods: {
+    // Método para cargar salas si no las recibimos como prop
+    async cargarSalasInternas() {
+      if (this.salas && this.salas.length > 0) {
+        console.log('Alerts: usando salas del prop');
+        return; // Ya tenemos salas del prop
+      }
+
+      try {
+        console.log('Alerts: cargando salas internamente');
+        const response = await axios.get('/api/salas');
+        
+        if (Array.isArray(response.data)) {
+          this.salasInternas = response.data.map(sala => ({
+            id: sala.id,
+            nombre: sala.nombre
+          }));
+          console.log('Alerts: salas internas cargadas:', this.salasInternas);
+        }
+      } catch (error) {
+        console.error('Alerts: error al cargar salas internas:', error);
+      }
+    },
+
     iniciarPolling() {
+      this.cargarSalasInternas(); // Cargar salas si es necesario
       this.cargarAlertas();
-      this.pollingInterval = setInterval(this.cargarAlertas, 900000); // 15 minutos = 900000 ms
+      this.pollingInterval = setInterval(this.cargarAlertas, 3000); // 3 segundos = 3000 ms
     },
     
     detenerPolling() {
@@ -133,6 +244,40 @@ export default {
         clearInterval(this.pollingInterval);
         this.pollingInterval = null;
       }
+    },
+
+    // Método para obtener el nombre correcto de la sala
+    obtenerNombreSala(alerta) {
+      // Debug: logs para ver qué datos tenemos
+      console.log('Debug obtenerNombreSala:', {
+        salaNombre: this.salaNombre,
+        salasDisponibles: this.salasDisponibles.length,
+        salasInternas: this.salasInternas.length,
+        salasProp: this.salas ? this.salas.length : 0,
+        salasNombres: this.salasNombres,
+        salasNombresKeys: Object.keys(this.salasNombres || {}),
+        alertaSalaId: alerta.sala_id,
+        nombreEncontrado: this.salasNombres[alerta.sala_id]
+      });
+      
+      // Priorizar el nombre directo si estamos en una sala específica
+      if (this.salaNombre && this.salaNombre.trim() !== '') {
+        console.log('Usando salaNombre:', this.salaNombre);
+        return this.salaNombre;
+      }
+      
+      // Usar el diccionario de salas si está disponible y no está vacío
+      if (this.salasNombres && 
+          Object.keys(this.salasNombres).length > 0 && 
+          this.salasNombres[alerta.sala_id]) {
+        const nombreSala = this.salasNombres[alerta.sala_id];
+        console.log('Usando nombre del diccionario:', nombreSala);
+        return nombreSala;
+      }
+      
+      // Fallback al ID de la sala
+      console.log('Usando fallback para sala:', alerta.sala_id);
+      return `Sala ${alerta.sala_id}`;
     },
     
     async cargarAlertas() {
@@ -147,8 +292,11 @@ export default {
           url = '/api/alertas';
         }
         
+        console.log(`Alerts[${this.componentId}]: Cargando alertas desde ${url}`);
         const response = await axios.get(url);
         const nuevasAlertas = response.data;
+        console.log(`Alerts[${this.componentId}]: Recibidas ${nuevasAlertas.length} alertas`);
+        
         // Ordenar por fecha descendente (más nueva primero)
         nuevasAlertas.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
 
@@ -158,6 +306,7 @@ export default {
 
           if (this.ultimaAlertaNotificada === null) {
             this.ultimaAlertaNotificada = alertaMasReciente.id;
+            console.log(`Alerts[${this.componentId}]: Primera carga, estableciendo última alerta: ${alertaMasReciente.id}`);
           } else if (alertaMasReciente.id !== this.ultimaAlertaNotificada) {
             const nuevas = [];
             for (const alerta of nuevasAlertas) {
@@ -165,30 +314,39 @@ export default {
               nuevas.push(alerta);
             }
             
-            
-            // Emitir evento para nuevas alertas y mostrar notificación
-            nuevas.reverse().forEach(alerta => {
-              this.$emit('nueva-alerta', alerta);
+            if (nuevas.length > 0) {
+              console.log(`Alerts[${this.componentId}]: ${nuevas.length} nuevas alertas detectadas`);
               
-              // Asegurarse de que el método showNotification esté disponible
-              if (this.$root && typeof this.$root.showNotification === 'function') {
-                this.$root.showNotification(
-                  `Nueva Alerta - ${this.formatTipo(alerta.tipo)}`,
-                  `${alerta.descripcion}\nValor detectado: ${alerta.valor_detectado}`
-                );
-              } else {
-                console.error('Método showNotification no disponible en $root');
-              }
-            });
-            
-            this.ultimaAlertaNotificada = alertaMasReciente.id;
+              // Emitir evento para nuevas alertas y mostrar notificación
+              nuevas.reverse().forEach(alerta => {
+                console.log(`Alerts[${this.componentId}]: procesando alerta ${alerta.id}`);
+                this.$emit('nueva-alerta', alerta);
+                
+                // Obtener el nombre de la sala de forma consistente
+                const nombreSala = this.obtenerNombreSala(alerta);
+                
+                const titulo = `${this.formatTipo(alerta.tipo)} en ${nombreSala}`;
+                
+                // Solo mostrar notificación toast (evitar duplicados)
+                if (this.$root && typeof this.$root.showToastNotification === 'function') {
+                  const tipoNotificacion = alerta.tipo === 'critico' ? 'critical' : 'alert';
+                  const mensajeToast = `${alerta.descripcion}. Valor detectado: ${alerta.valor_detectado}`;
+                  console.log(`Alerts[${this.componentId}]: mostrando notificación para alerta ${alerta.id}`);
+                  this.$root.showToastNotification(titulo, mensajeToast, tipoNotificacion, alerta.id);
+                }
+              });
+              
+              this.ultimaAlertaNotificada = alertaMasReciente.id;
+            }
           }
         }
 
+        // IMPORTANTE: Siempre actualizar las alertas mostradas
         this.alertasOriginales = nuevasAlertas;
+        console.log(`Alerts[${this.componentId}]: Alertas originales actualizadas: ${this.alertasOriginales.length} alertas`);
         this.$emit('alertas-todas-cargadas', this.alertasOriginales);
       } catch (error) {
-        console.error('Error al cargar alertas:', error);
+        console.error(`Alerts[${this.componentId}]: Error al cargar alertas:`, error);
         this.error = 'Error al cargar las alertas. Verifique su conexión.';
       } finally {
         this.loading = false;
@@ -301,10 +459,10 @@ export default {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
-.alerta.informativo {
+/*.alerta.informativo {
   background-color: #e3f2fd;
   border-left-color: #2196f3;
-}
+}*/
 
 .alerta.preventivo {
   background-color: #fff3e0;
