@@ -68,6 +68,16 @@ docker-compose up --build -d
 - API REST (Backend): http://localhost:8080
 - Dashboard (Grafana): http://localhost:3000
 
+## Credenciales de Acceso
+
+### Sistema Principal
+- **Usuario**: usuario@demo.cl
+- **Contraseña**: usuario123
+
+### Grafana
+- **Usuario**: admin
+- **Contraseña**: admin123
+
 ---
 
 ## Simulación de Sensores
