@@ -290,27 +290,10 @@ export default {
                     this.estadisticas.totalSalas = salasResponse.data.length
                 }
 
-                // Cargar estadísticas adicionales
-                await this.cargarEstadisticas()
-
             } catch (error) {
                 console.error('Error al cargar datos:', error)
             } finally {
                 this.loading = false
-            }
-        },
-
-        async cargarEstadisticas() {
-            try {
-                // Simular datos de estadísticas (deberías obtenerlos de tu API)
-                this.estadisticas = {
-                    ...this.estadisticas,
-                    sensoresActivos: Math.floor(Math.random() * 50) + 20,
-                    alertasHoy: Math.floor(Math.random() * 10) + 2,
-                    escuelas: Math.floor(Math.random() * 5) + 3
-                }
-            } catch (error) {
-                console.error('Error al cargar estadísticas:', error)
             }
         },
 

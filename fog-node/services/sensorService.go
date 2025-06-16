@@ -7,17 +7,14 @@ import (
 	"fog-node/models"
 )
 
-// SensorService maneja la lógica de negocio relacionada con los sensores
 type SensorService struct {
 	db *sql.DB
 }
 
-// NewSensorService crea una nueva instancia del servicio
 func NewSensorService(db *sql.DB) *SensorService {
 	return &SensorService{db: db}
 }
 
-// ProcessSensorData procesa los datos recibidos de un sensor
 func (s *SensorService) ProcessSensorData(data models.SensorData, salaID int) error {
 	tx, err := s.db.Begin()
 	if err != nil {
@@ -105,7 +102,6 @@ func (s *SensorService) GetActiveAlerts(salaID string) ([]models.Alerta, error) 
 	return alertas, nil
 }
 
-// Métodos privados auxiliares
 func (s *SensorService) getVariableIDs(tx *sql.Tx, tempID, humID, co2ID, noiseID, lightID *int) error {
 	var err error
 	err = tx.QueryRow("SELECT id FROM variable_ambiental WHERE nombre = 'Temperatura'").Scan(tempID)
@@ -194,7 +190,6 @@ func (s *SensorService) insertMeasurements(tx *sql.Tx, data models.SensorData,
 }
 
 func (s *SensorService) checkThresholds(tx *sql.Tx, salaID int, data models.SensorData) error {
-	// Obtener variable_id para cada variable
 	var tempVarID, humVarID, co2VarID, noiseVarID, lightVarID int
 	err := tx.QueryRow("SELECT id FROM variable_ambiental WHERE nombre = 'Temperatura'").Scan(&tempVarID)
 	if err != nil {

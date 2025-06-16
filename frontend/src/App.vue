@@ -280,11 +280,9 @@ export default {
         timeout: 4000
       },
       pollingInterval: null,
-      // Nuevo sistema de notificaciones tipo toast
       notificacionesToast: [],
       nextNotificationId: 1,
-      // Sistema de deduplicación de alertas
-      alertasNotificadas: new Set() // Para evitar duplicados
+      alertasNotificadas: new Set()
     }
   },
   computed: {
@@ -299,8 +297,6 @@ export default {
     }
   },
   watch: {
-    // Los watchers ya no son necesarios porque la computed property es reactiva automáticamente
-    // Pero mantenemos uno simple para debug
     salas: {
       handler() {
         console.log('Salas actualizadas, títulos se actualizarán automáticamente');
@@ -513,7 +509,6 @@ export default {
         }
       }
 
-      // Mostrar notificación toast en la página
       this.showToastNotification(title, body, 'alert');
     },
 
@@ -546,16 +541,15 @@ export default {
 
       this.notificacionesToast.unshift(notification);
 
-      // Auto-dismiss después de 8 segundos para alertas críticas, 5 para otras
       const timeout = type === 'critical' ? 8000 : 5000;
       setTimeout(() => {
         this.dismissNotification(notification.id);
       }, timeout);
 
       // Limitar a máximo 3 notificaciones visibles
-      if (this.notificacionesToast.length > 3) {
+      /*if (this.notificacionesToast.length > 3) {
         this.notificacionesToast = this.notificacionesToast.slice(0, 3);
-      }
+      }*/
     },
 
     dismissNotification(id) {
@@ -564,13 +558,11 @@ export default {
         const notification = this.notificacionesToast[index];
         this.notificacionesToast.splice(index, 1);
         
-        // Opcional: remover del set de notificadas después de un tiempo
-        // para permitir re-notificaciones de la misma alerta más tarde
         if (notification.alertId) {
           setTimeout(() => {
             const alertKey = `${notification.alertId}-${notification.type}`;
             this.alertasNotificadas.delete(alertKey);
-          }, 30000); // Permitir re-notificación después de 30 segundos
+          }, 30000);
         }
       }
     },
@@ -621,7 +613,6 @@ export default {
 <style>
 @import '@mdi/font/css/materialdesignicons.css';
 
-/* Transiciones suaves */
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.3s ease;
@@ -632,29 +623,24 @@ export default {
   opacity: 0;
 }
 
-/* Efecto blur en app bar cuando drawer está abierto */
 .blur-background {
   backdrop-filter: blur(2px);
 }
 
-/* Mejoras visuales para el drawer */
 .v-navigation-drawer {
   border-right: 1px solid rgba(0, 0, 0, 0.12) !important;
 }
 
-/* Estilos para chips pequeños */
 .v-chip.v-size--x-small {
   height: 18px !important;
   font-size: 10px !important;
   min-width: 18px !important;
 }
 
-/* Hover effects para list items */
 .v-list-item:hover {
   background-color: rgba(0, 0, 0, 0.04) !important;
 }
 
-/* Estilo activo para rutas */
 .v-list-item--active {
   color: var(--v-primary-base) !important;
 }
@@ -680,7 +666,6 @@ export default {
   margin-top: 24px !important;
 }
 
-/* Sistema de notificaciones Toast */
 .notifications-container {
   position: fixed;
   top: 80px;
@@ -776,7 +761,6 @@ export default {
   opacity: 1;
 }
 
-/* Animaciones para las notificaciones */
 .notification-enter-active {
   transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
@@ -823,7 +807,6 @@ export default {
   }
 }
 
-/* Efectos hover para las notificaciones */
 .notification-toast:hover {
   transform: translateY(-2px);
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);

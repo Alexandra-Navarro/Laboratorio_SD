@@ -13,7 +13,6 @@ type SensorData struct {
 	Light       float32   `json:"luz"`
 }
 
-// Medicion representa una medición almacenada en la base de datos
 type Medicion struct {
 	Fecha        time.Time `json:"fecha"`
 	Variable     string    `json:"variable"`
@@ -21,7 +20,6 @@ type Medicion struct {
 	UnidadMedida string    `json:"unidad_medida"`
 }
 
-// Alerta representa una alerta generada por el sistema
 type Alerta struct {
 	Tipo           string    `json:"tipo"`
 	Descripcion    string    `json:"descripcion"`

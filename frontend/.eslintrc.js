@@ -12,7 +12,6 @@ module.exports = {
       ecmaVersion: 2020
     },
     rules: {
-      // Desactivar la regla que exige nombres de componentes de varias palabras
       'vue/multi-word-component-names': 'off'
     }
   };

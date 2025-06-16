@@ -19,7 +19,6 @@ func NewMedicionController(medicionService *services.MedicionService) *MedicionC
 	}
 }
 
-// CreateMedicion maneja la creación de una nueva medición
 func (c *MedicionController) CreateMedicion(ctx *gin.Context) {
 	var medicion models.Medicion
 	if err := ctx.ShouldBindJSON(&medicion); err != nil {
@@ -35,7 +34,6 @@ func (c *MedicionController) CreateMedicion(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, medicion)
 }
 
-// GetMedicionesBySala obtiene las mediciones de una sala específica
 func (c *MedicionController) GetMedicionesBySala(ctx *gin.Context) {
 	salaID, err := strconv.Atoi(ctx.Param("sala_id"))
 	if err != nil {
@@ -52,7 +50,6 @@ func (c *MedicionController) GetMedicionesBySala(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, mediciones)
 }
 
-// GetMedicionesByVariable obtiene las mediciones de una variable específica
 func (c *MedicionController) GetMedicionesByVariable(ctx *gin.Context) {
 	variableID, err := strconv.Atoi(ctx.Param("variable_id"))
 	if err != nil {

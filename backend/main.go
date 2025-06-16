@@ -32,7 +32,7 @@ func main() {
 		MaxAge:           12 * 3600,
 	}))
 	// Configurar las rutas
-	routes.InitAllRoutes(router) // Usando el nombre correcto de la función
+	routes.InitAllRoutes(router)
 
 	router.OPTIONS("/*cors", func(c *gin.Context) {
 		c.Status(204)

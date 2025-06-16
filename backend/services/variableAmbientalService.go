@@ -41,7 +41,7 @@ func (s *VariableAmbientalService) UpdateVariableAmbiental(id uint, newVariableA
 	if err := s.DB.First(&variableAmbiental, id).Error; err != nil {
 		return nil, err
 	}
-	// Actualizar campos
+
 	variableAmbiental.Nombre = newVariableAmbiental.Nombre
 	variableAmbiental.UnidadMedida = newVariableAmbiental.UnidadMedida
 

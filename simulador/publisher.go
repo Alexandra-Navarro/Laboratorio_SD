@@ -62,8 +62,8 @@ func generateSensorData(roomID string) SensorData {
 		ruido = 35.0 + rand.Float64()*30.0
 	}
 
-	// Luz: 300-700 lux normal, ocasionalmente fuera de rango
-	luz := 300.0 + rand.Float64()*400.0
+	// Luz: 500-750 lux normal, ocasionalmente fuera de rango
+	luz := 500.0 + rand.Float64()*400.0
 	if rand.Float64() < 0.2 { // 20% de probabilidad de luz anormal
 		luz = 100.0 + rand.Float64()*900.0
 	}

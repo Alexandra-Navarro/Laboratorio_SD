@@ -1,9 +1,9 @@
--- Inserta una escuela de ejemplo si no existe
+-- Inserta una escuela de ejemplo
 INSERT INTO escuela (nombre, direccion, comuna)
 VALUES ('Escuela Demo', 'Calle Falsa 123', 'Comuna Central')
 ON CONFLICT (nombre) DO NOTHING;
 
--- Poblar las salas (usamos escuela_id = 1 directamente)
+-- Poblar las salas
 INSERT INTO sala (nombre, escuela_id) VALUES
 ('A101', 1),
 ('A102', 1),
@@ -60,7 +60,7 @@ INSERT INTO sensor (modelo, estado, fecha_instalacion, sala_id, variable_id) VAL
 ('KY-038', 'activo', CURRENT_DATE, 5, 4),
 ('LDR', 'activo', CURRENT_DATE, 5, 5);
 
--- Insertar usuario normal
+-- Insertar usuario
 INSERT INTO usuario (rut_usuario, nombre, email, password, rol, escuela_id) VALUES 
-('12345678-9', 'Usuario Demo', 'usuario@demo.cl', 'usuario123', 'user', 1)
+('12345678-9', 'Usuario Demo', 'usuario@demo.cl', 'usuario123', 'admin', 1)
 ON CONFLICT (email) DO NOTHING;

@@ -65,7 +65,6 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(process.env.BASE_URL),
   routes,
-  // Scroll behavior para mejorar UX
   scrollBehavior(to, from, savedPosition) {
     if (savedPosition) {
       return savedPosition
@@ -74,14 +73,11 @@ const router = createRouter({
   }
 })
 
-// Navigation guard para manejar títulos y autenticación
 router.beforeEach((to, from, next) => {
-  // Actualizar título de la página
   if (to.meta.title) {
     document.title = `${to.meta.title} - Sistema de Monitoreo`
   }
 
-  // Lógica de autenticación
   const publicPages = ['/']
   const authRequired = !publicPages.includes(to.path)
   const usuario = localStorage.getItem('usuario')
@@ -90,7 +86,7 @@ router.beforeEach((to, from, next) => {
     return next('/')
   }
 
-  // Si el usuario está logueado y va a la página de login, redirigir al dashboard
+  // Si el usuario está logueado y va a la página de login, redirigir al home
   if (to.path === '/' && usuario) {
     return next('/home')
   }

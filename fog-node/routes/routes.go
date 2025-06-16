@@ -6,7 +6,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// SetupRoutes configura las rutas de la aplicación
 func SetupRoutes(router *gin.Engine, sensorController *controllers.SensorController) {
 	api := router.Group("/api")
 	{

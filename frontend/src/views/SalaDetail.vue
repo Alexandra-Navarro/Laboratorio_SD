@@ -486,7 +486,6 @@ export default {
         const sensoresRes = await axios.get(`/api/sensores/sala/${this.salaId}`);
         let sensores = sensoresRes.data;
         if (!Array.isArray(sensores)) {
-          // Intenta detectar si el array está anidado
           if (Array.isArray(sensores.sensores)) {
             sensores = sensores.sensores;
           } else {
@@ -494,7 +493,6 @@ export default {
             sensores = [];
           }
         }
-        // Diccionario sensor_id -> variable_id
         const sensorToVariable = {};
         sensores.forEach(sensor => {
           sensorToVariable[sensor.id] = sensor.variable_id;
@@ -540,7 +538,6 @@ export default {
         this.alertasCriticas++
       }
 
-      // Mostrar notificación usando el método centralizado
       this.$root.showNotification(
         `Nueva Alerta en ${this.salaInfo.nombre} - ${alerta.tipo}`,
         `${alerta.descripcion}\nValor detectado: ${alerta.valor_detectado}`

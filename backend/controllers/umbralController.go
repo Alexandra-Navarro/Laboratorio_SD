@@ -17,7 +17,6 @@ func NewUmbralController(service *services.UmbralService) *UmbralController {
 	return &UmbralController{UmbralService: service}
 }
 
-// GET /api/umbrales?sala_id=X
 func (uc *UmbralController) GetBySalaID(c *gin.Context) {
 	salaIDStr := c.Query("sala_id")
 	salaID, err := strconv.Atoi(salaIDStr)
@@ -33,7 +32,6 @@ func (uc *UmbralController) GetBySalaID(c *gin.Context) {
 	c.JSON(http.StatusOK, umbrales)
 }
 
-// POST /api/umbrales
 func (uc *UmbralController) Create(c *gin.Context) {
 	var umbral models.Umbral
 	if err := c.ShouldBindJSON(&umbral); err != nil {
@@ -47,7 +45,6 @@ func (uc *UmbralController) Create(c *gin.Context) {
 	c.JSON(http.StatusCreated, umbral)
 }
 
-// PUT /api/umbrales/:id
 func (uc *UmbralController) Update(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.Atoi(idStr)
@@ -67,7 +64,6 @@ func (uc *UmbralController) Update(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Umbral actualizado"})
 }
 
-// DELETE /api/umbrales/:id
 func (uc *UmbralController) Delete(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.Atoi(idStr)

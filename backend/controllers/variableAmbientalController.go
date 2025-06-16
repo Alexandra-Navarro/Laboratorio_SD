@@ -72,14 +72,12 @@ func (vc *VariableAmbientalController) Update(c *gin.Context) {
 		return
 	}
 
-	// Obtener la actual
 	variable, err := vc.VariableAmbientalService.GetVariableAmbientalByID(uint(idUint))
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Variable ambiental no encontrada"})
 		return
 	}
 
-	// Actualizar campos
 	variable.Nombre = nueva.Nombre
 	variable.UnidadMedida = nueva.UnidadMedida
 

@@ -9,7 +9,7 @@ RUN apk add --no-cache \
       gcc \
       musl-dev
 
-# Copia todo el proyecto (incluye go.mod y fuente)
+# Copia todo el proyecto
 COPY . .
 
 # Limpia y actualiza go.mod/go.sum según el código

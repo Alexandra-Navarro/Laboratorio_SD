@@ -85,17 +85,15 @@ export default {
       error: null,
       pollingInterval: null,
       ultimaAlertaNotificada: null,
-      salasInternas: [], // Para guardar las salas si las tenemos que cargar internamente
-      componentId: Math.random().toString(36).substr(2, 9) // ID único para debug
+      salasInternas: [],
+      componentId: Math.random().toString(36).substr(2, 9)
     };
   },
   computed: {
     salasDisponibles() {
-      // Priorizar las salas que vienen como prop
       if (this.salas && this.salas.length > 0) {
         return this.salas;
       }
-      // Usar salas internas si las hemos cargado
       return this.salasInternas;
     },
     salasNombres() {
@@ -146,7 +144,6 @@ export default {
         console.log(`Alerts[${this.componentId}]: Después de filtrar por fecha: ${filtradas.length}`);
       }
       
-      // Aplicar límite si se especifica
       if (this.limit && this.limit > 0) {
         filtradas = filtradas.slice(0, this.limit);
         console.log(`Alerts[${this.componentId}]: Después de aplicar límite: ${filtradas.length}`);
@@ -178,12 +175,10 @@ export default {
         this.$emit('alertas-cargadas', nuevasAlertas);
       }
     },
-    // Nuevo watcher: cuando cambien las salas, verificar notificaciones pendientes
     salas: {
       deep: true,
       handler(nuevasSalas) {
         console.log('Salas cambiaron en Alerts:', nuevasSalas);
-        // Las salas han cambiado, el diccionario se actualizará automáticamente
       }
     }
   },
@@ -196,7 +191,6 @@ export default {
       salasCargadas: this.salasCargadas
     });
     
-    // Debug adicional: verificar estado inicial
     console.log(`Alerts[${this.componentId}] estado inicial:`, {
       alertas: this.alertas.length,
       alertasOriginales: this.alertasOriginales.length,
@@ -210,11 +204,10 @@ export default {
     this.detenerPolling();
   },
   methods: {
-    // Método para cargar salas si no las recibimos como prop
     async cargarSalasInternas() {
       if (this.salas && this.salas.length > 0) {
         console.log('Alerts: usando salas del prop');
-        return; // Ya tenemos salas del prop
+        return;
       }
 
       try {
@@ -234,9 +227,9 @@ export default {
     },
 
     iniciarPolling() {
-      this.cargarSalasInternas(); // Cargar salas si es necesario
+      this.cargarSalasInternas();
       this.cargarAlertas();
-      this.pollingInterval = setInterval(this.cargarAlertas, 3000); // 3 segundos = 3000 ms
+      this.pollingInterval = setInterval(this.cargarAlertas, 3000);
     },
     
     detenerPolling() {
@@ -246,9 +239,7 @@ export default {
       }
     },
 
-    // Método para obtener el nombre correcto de la sala
     obtenerNombreSala(alerta) {
-      // Debug: logs para ver qué datos tenemos
       console.log('Debug obtenerNombreSala:', {
         salaNombre: this.salaNombre,
         salasDisponibles: this.salasDisponibles.length,
@@ -260,13 +251,10 @@ export default {
         nombreEncontrado: this.salasNombres[alerta.sala_id]
       });
       
-      // Priorizar el nombre directo si estamos en una sala específica
       if (this.salaNombre && this.salaNombre.trim() !== '') {
         console.log('Usando salaNombre:', this.salaNombre);
         return this.salaNombre;
       }
-      
-      // Usar el diccionario de salas si está disponible y no está vacío
       if (this.salasNombres && 
           Object.keys(this.salasNombres).length > 0 && 
           this.salasNombres[alerta.sala_id]) {
@@ -275,7 +263,6 @@ export default {
         return nombreSala;
       }
       
-      // Fallback al ID de la sala
       console.log('Usando fallback para sala:', alerta.sala_id);
       return `Sala ${alerta.sala_id}`;
     },
@@ -297,10 +284,8 @@ export default {
         const nuevasAlertas = response.data;
         console.log(`Alerts[${this.componentId}]: Recibidas ${nuevasAlertas.length} alertas`);
         
-        // Ordenar por fecha descendente (más nueva primero)
         nuevasAlertas.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
 
-        // Verificar nuevas alertas para notificaciones
         if (nuevasAlertas.length > 0) {
           const alertaMasReciente = nuevasAlertas[0];
 
@@ -317,17 +302,14 @@ export default {
             if (nuevas.length > 0) {
               console.log(`Alerts[${this.componentId}]: ${nuevas.length} nuevas alertas detectadas`);
               
-              // Emitir evento para nuevas alertas y mostrar notificación
               nuevas.reverse().forEach(alerta => {
                 console.log(`Alerts[${this.componentId}]: procesando alerta ${alerta.id}`);
                 this.$emit('nueva-alerta', alerta);
-                
-                // Obtener el nombre de la sala de forma consistente
+
                 const nombreSala = this.obtenerNombreSala(alerta);
                 
                 const titulo = `${this.formatTipo(alerta.tipo)} en ${nombreSala}`;
                 
-                // Solo mostrar notificación toast (evitar duplicados)
                 if (this.$root && typeof this.$root.showToastNotification === 'function') {
                   const tipoNotificacion = alerta.tipo === 'critico' ? 'critical' : 'alert';
                   const mensajeToast = `${alerta.descripcion}. Valor detectado: ${alerta.valor_detectado}`;
@@ -341,7 +323,6 @@ export default {
           }
         }
 
-        // IMPORTANTE: Siempre actualizar las alertas mostradas
         this.alertasOriginales = nuevasAlertas;
         console.log(`Alerts[${this.componentId}]: Alertas originales actualizadas: ${this.alertasOriginales.length} alertas`);
         this.$emit('alertas-todas-cargadas', this.alertasOriginales);

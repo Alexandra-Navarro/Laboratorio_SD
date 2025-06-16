@@ -34,7 +34,6 @@ func (uc *UsuarioController) Create(c *gin.Context) {
 func (uc *UsuarioController) GetByID(c *gin.Context) {
 	rut := c.Param("rut")
 
-	// GORM espera uint, pero rut_usuario es string. Necesitas adaptar tu servicio o hacer una consulta custom.
 	var usuario models.Usuario
 	if err := uc.UsuarioService.DB.First(&usuario, "rut_usuario = ?", rut).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Usuario no encontrado"})
@@ -109,7 +108,6 @@ func (uc *UsuarioController) Login(c *gin.Context) {
 		return
 	}
 
-	// Si tienes JWT, descomenta lo siguiente y asegúrate de tener config.GenerateJWT
 	// token, err := config.GenerateJWT(usuario.Rut)
 	// if err != nil {
 	//     c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo generar el token"})
