@@ -220,19 +220,19 @@ func (s *SensorService) checkThresholds(tx *sql.Tx, salaID int, data models.Sens
 	}
 	if float64(data.Temperature) < tempUmbralBajo {
 		_, err = tx.Exec("INSERT INTO alerta (tipo, descripcion, valor_detectado, umbral, sala_id) VALUES ($1, $2, $3, $4, $5)",
-			"preventivo", "Temperatura por debajo del umbral", data.Temperature, "bajo", salaID)
+			"critico", "Nivel de temperatura por debajo del umbral", data.Temperature, "bajo", salaID)
 		if err != nil {
 			return fmt.Errorf("error al crear alerta de temperatura baja: %v", err)
 		}
 	} else if float64(data.Temperature) > tempUmbralAlto {
 		_, err = tx.Exec("INSERT INTO alerta (tipo, descripcion, valor_detectado, umbral, sala_id) VALUES ($1, $2, $3, $4, $5)",
-			"preventivo", "Temperatura por encima del umbral", data.Temperature, "alto", salaID)
+			"critico", "Nivel de temperatura por encima del umbral", data.Temperature, "alto", salaID)
 		if err != nil {
 			return fmt.Errorf("error al crear alerta de temperatura alta: %v", err)
 		}
 	} else if float64(data.Temperature) >= tempUmbralBajoPrev && float64(data.Temperature) <= tempUmbralAltoPrev {
 		_, err = tx.Exec("INSERT INTO alerta (tipo, descripcion, valor_detectado, umbral, sala_id) VALUES ($1, $2, $3, $4, $5)",
-			"preventivo", "Temperatura por encima del umbral", data.Temperature, "alto", salaID)
+			"preventivo", "Nivel de temperatura transgrede el umbral preventivo", data.Temperature, "alto", salaID)
 		if err != nil {
 			return fmt.Errorf("error al crear alerta de temperatura alta: %v", err)
 		}
@@ -246,19 +246,19 @@ func (s *SensorService) checkThresholds(tx *sql.Tx, salaID int, data models.Sens
 	}
 	if float64(data.Humidity) < humUmbralBajo {
 		_, err = tx.Exec("INSERT INTO alerta (tipo, descripcion, valor_detectado, umbral, sala_id) VALUES ($1, $2, $3, $4, $5)",
-			"preventivo", "Humedad por debajo del umbral", data.Humidity, "bajo", salaID)
+			"critico", "Nivel de humedad por debajo del umbral", data.Humidity, "bajo", salaID)
 		if err != nil {
 			return fmt.Errorf("error al crear alerta de humedad baja: %v", err)
 		}
 	} else if float64(data.Humidity) > humUmbralAlto {
 		_, err = tx.Exec("INSERT INTO alerta (tipo, descripcion, valor_detectado, umbral, sala_id) VALUES ($1, $2, $3, $4, $5)",
-			"preventivo", "Humedad por encima del umbral", data.Humidity, "alto", salaID)
+			"critico", "Nivel de humedad por encima del umbral", data.Humidity, "alto", salaID)
 		if err != nil {
 			return fmt.Errorf("error al crear alerta de humedad alta: %v", err)
 		}
 	} else if (float64(data.Humidity) <= humUmbralBajoPrev && float64(data.Humidity) >= humUmbralBajo) || (float64(data.Humidity) >= humUmbralAltoPrev && float64(data.Humidity) <= humUmbralAlto) {
 		_, err = tx.Exec("INSERT INTO alerta (tipo, descripcion, valor_detectado, umbral, sala_id) VALUES ($1, $2, $3, $4, $5)",
-			"preventivo", "Humedad transgrede el umbral", data.Humidity, "alto", salaID)
+			"preventivo", "Nivel de humedad transgrede el umbral preventivo", data.Humidity, "alto", salaID)
 		if err != nil {
 			return fmt.Errorf("error al crear alerta de humedad alta: %v", err)
 		}
@@ -272,19 +272,19 @@ func (s *SensorService) checkThresholds(tx *sql.Tx, salaID int, data models.Sens
 	}
 	if float64(data.CO2) < co2UmbralBajo {
 		_, err = tx.Exec("INSERT INTO alerta (tipo, descripcion, valor_detectado, umbral, sala_id) VALUES ($1, $2, $3, $4, $5)",
-			"critico", "CO2 por debajo del umbral", data.CO2, "bajo", salaID)
+			"critico", "Nivel de CO2 por debajo del umbral", data.CO2, "bajo", salaID)
 		if err != nil {
 			return fmt.Errorf("error al crear alerta de CO2 bajo: %v", err)
 		}
 	} else if float64(data.CO2) > co2UmbralAlto {
 		_, err = tx.Exec("INSERT INTO alerta (tipo, descripcion, valor_detectado, umbral, sala_id) VALUES ($1, $2, $3, $4, $5)",
-			"critico", "Nivel de CO2 crítico", data.CO2, "alto", salaID)
+			"critico", "Nivel de CO2 por encima del umbral", data.CO2, "alto", salaID)
 		if err != nil {
 			return fmt.Errorf("error al crear alerta de CO2: %v", err)
 		}
 	} else if float64(data.CO2) >= co2UmbralBajoPrev && float64(data.CO2) <= co2UmbralAltoPrev {
 		_, err = tx.Exec("INSERT INTO alerta (tipo, descripcion, valor_detectado, umbral, sala_id) VALUES ($1, $2, $3, $4, $5)",
-			"preventivo", "CO2 por encima del umbral", data.CO2, "alto", salaID)
+			"preventivo", "Nivel de CO2 transgrede el umbral preventivo", data.CO2, "alto", salaID)
 		if err != nil {
 			return fmt.Errorf("error al crear alerta de CO2 alta: %v", err)
 		}
@@ -296,21 +296,15 @@ func (s *SensorService) checkThresholds(tx *sql.Tx, salaID int, data models.Sens
 	if err != nil {
 		return fmt.Errorf("error al obtener umbrales de ruido: %v", err)
 	}
-	if float64(data.Noise) < noiseUmbralBajo {
+	if float64(data.Noise) > noiseUmbralAlto {
 		_, err = tx.Exec("INSERT INTO alerta (tipo, descripcion, valor_detectado, umbral, sala_id) VALUES ($1, $2, $3, $4, $5)",
-			"critico", "Ruido por debajo del umbral", data.Noise, "bajo", salaID)
-		if err != nil {
-			return fmt.Errorf("error al crear alerta de ruido bajo: %v", err)
-		}
-	} else if float64(data.Noise) > noiseUmbralAlto {
-		_, err = tx.Exec("INSERT INTO alerta (tipo, descripcion, valor_detectado, umbral, sala_id) VALUES ($1, $2, $3, $4, $5)",
-			"critico", "Nivel de ruido crítico", data.Noise, "alto", salaID)
+			"critico", "Nivel de ruido por encima del umbral", data.Noise, "alto", salaID)
 		if err != nil {
 			return fmt.Errorf("error al crear alerta de ruido: %v", err)
 		}
 	} else if float64(data.Noise) >= noiseUmbralBajoPrev && float64(data.Noise) <= noiseUmbralAltoPrev {
 		_, err = tx.Exec("INSERT INTO alerta (tipo, descripcion, valor_detectado, umbral, sala_id) VALUES ($1, $2, $3, $4, $5)",
-			"preventivo", "Ruido por encima del umbral", data.Noise, "alto", salaID)
+			"preventivo", "Nivel de ruido transgrede el umbral preventivo", data.Noise, "alto", salaID)
 		if err != nil {
 			return fmt.Errorf("error al crear alerta de ruido alta: %v", err)
 		}
@@ -324,19 +318,19 @@ func (s *SensorService) checkThresholds(tx *sql.Tx, salaID int, data models.Sens
 	}
 	if float64(data.Light) < lightUmbralBajo {
 		_, err = tx.Exec("INSERT INTO alerta (tipo, descripcion, valor_detectado, umbral, sala_id) VALUES ($1, $2, $3, $4, $5)",
-			"critico", "Iluminación por debajo del umbral", data.Light, "bajo", salaID)
+			"critico", "Nivel de iluminación por debajo del umbral", data.Light, "bajo", salaID)
 		if err != nil {
 			return fmt.Errorf("error al crear alerta de iluminación baja: %v", err)
 		}
 	} else if float64(data.Light) > lightUmbralAlto {
 		_, err = tx.Exec("INSERT INTO alerta (tipo, descripcion, valor_detectado, umbral, sala_id) VALUES ($1, $2, $3, $4, $5)",
-			"critico", "Iluminación por encima del umbral", data.Light, "alto", salaID)
+			"critico", "Nivel de iluminación por encima del umbral", data.Light, "alto", salaID)
 		if err != nil {
 			return fmt.Errorf("error al crear alerta de iluminación alta: %v", err)
 		}
 	} else if (float64(data.Light) <= lightUmbralBajoPrev && float64(data.Light) >= lightUmbralBajo) || (float64(data.Light) >= lightUmbralAltoPrev && float64(data.Light) <= lightUmbralAlto) {
 		_, err = tx.Exec("INSERT INTO alerta (tipo, descripcion, valor_detectado, umbral, sala_id) VALUES ($1, $2, $3, $4, $5)",
-			"preventivo", "Iluminación transgrede el umbral", data.Light, "alto", salaID)
+			"preventivo", "Nivel de iluminación transgrede el umbral preventivo", data.Light, "alto", salaID)
 		if err != nil {
 			return fmt.Errorf("error al crear alerta de iluminación alta: %v", err)
 		}

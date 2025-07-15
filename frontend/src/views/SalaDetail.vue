@@ -589,14 +589,20 @@ export default {
     },
     async guardarUmbral(variable) {
       try {
+        // Validar que el umbral bajo no sea mayor que el umbral alto
+        if (this.formUmbral.umbral_bajo >= this.formUmbral.umbral_alto) {
+          this.$root.showNotification('Error', 'El umbral bajo no puede ser mayor que el umbral alto.', 'error');
+          return;
+        }
+
         if (this.tieneUmbralPersonalizado(variable.id)) {
           // Editar umbral existente
-          const umbral = this.umbralesPersonalizados.find(u => u.variable_id === variable.id)
+          const umbral = this.umbralesPersonalizados.find(u => u.variable_id === variable.id);
           await axios.put(`/api/umbrales/${umbral.id}`, {
             ...umbral,
             umbral_bajo: this.formUmbral.umbral_bajo,
             umbral_alto: this.formUmbral.umbral_alto
-          })
+          });
         } else {
           // Crear nuevo umbral personalizado
           await axios.post('/api/umbrales', {
@@ -604,15 +610,15 @@ export default {
             variable_id: variable.id,
             umbral_bajo: this.formUmbral.umbral_bajo,
             umbral_alto: this.formUmbral.umbral_alto
-          })
+          });
         }
-        this.editandoId = null
-        this.formUmbral = { umbral_bajo: '', umbral_alto: '' }
-        await this.cargarVariablesYUmbrales()
-        this.$root.showNotification('Umbral guardado', 'El umbral se guardó correctamente.')
+        this.editandoId = null;
+        this.formUmbral = { umbral_bajo: '', umbral_alto: '' };
+        await this.cargarVariablesYUmbrales();
+        this.$root.showNotification('Umbral guardado', 'El umbral se guardó correctamente.');
       } catch (error) {
-        console.error('Error al guardar umbral:', error)
-        this.$root.showNotification('Error', 'No se pudo guardar el umbral.', 'error')
+        console.error('Error al guardar umbral:', error);
+        this.$root.showNotification('Error', 'No se pudo guardar el umbral.', 'error');
       }
     },
     async eliminarUmbral(variable) {
